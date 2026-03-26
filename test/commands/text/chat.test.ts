@@ -13,7 +13,7 @@ describe('text chat command', () => {
   it('sends chat request and gets response', async () => {
     server = createMockServer({
       routes: {
-        '/v1/text/chatcompletion_v2': () => jsonResponse(textChatResponse),
+        '/anthropic/v1/messages': () => jsonResponse(textChatResponse),
       },
     });
 
@@ -40,7 +40,7 @@ describe('text chat command', () => {
 
     try {
       await chatCommand.execute(config, {
-        message: ['user:Hello'],
+        message: ['Hello'],
         stream: false,
         quiet: true,
         verbose: false,
@@ -78,7 +78,7 @@ describe('text chat command', () => {
 
     try {
       await chatCommand.execute(config, {
-        message: ['user:Hello'],
+        message: ['Hello'],
         quiet: false,
         verbose: false,
         noColor: true,

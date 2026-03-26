@@ -1,19 +1,17 @@
 {
   "id": "msg_01abc123",
-  "model": "MiniMax-M2.7",
-  "choices": [
+  "type": "message",
+  "role": "assistant",
+  "content": [
     {
-      "message": {
-        "role": "assistant",
-        "content": "Hello! How can I help you today?"
-      },
-      "finish_reason": "stop",
-      "index": 0
+      "type": "text",
+      "text": "Hello! How can I help you today?"
     }
   ],
+  "model": "MiniMax-M2.7",
+  "stop_reason": "end_turn",
   "usage": {
-    "prompt_tokens": 12,
-    "completion_tokens": 8,
-    "total_tokens": 20
+    "input_tokens": 12,
+    "output_tokens": 8
   }
 }

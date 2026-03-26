@@ -13,6 +13,7 @@ export interface RequestOpts {
   timeout?: number;
   stream?: boolean;
   noAuth?: boolean;
+  authStyle?: 'bearer' | 'x-api-key';
 }
 
 export async function request(
@@ -27,11 +28,15 @@ export async function request(
 
   if (!opts.noAuth) {
     const credential = await resolveCredential(config);
-    headers['Authorization'] = `Bearer ${credential.token}`;
+    if (opts.authStyle === 'x-api-key') {
+      headers['x-api-key'] = credential.token;
+    } else {
+      headers['Authorization'] = `Bearer ${credential.token}`;
+    }
 
     if (config.verbose) {
       process.stderr.write(`> ${opts.method || 'GET'} ${opts.url}\n`);
-      process.stderr.write(`> Authorization: Bearer ${credential.token.slice(0, 8)}...\n`);
+      process.stderr.write(`> Auth: ${credential.token.slice(0, 8)}...\n`);
     }
   }
 

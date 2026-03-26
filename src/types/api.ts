@@ -1,58 +1,91 @@
-// ---- Text / Chat ----
+// ---- Text / Chat (Anthropic Messages API) ----
+
+export type ContentBlock =
+  | { type: 'text'; text: string }
+  | { type: 'thinking'; thinking: string }
+  | { type: 'tool_use'; id: string; name: string; input: Record<string, unknown> }
+  | { type: 'tool_result'; tool_use_id: string; content: string };
 
 export interface ChatMessage {
-  role: 'system' | 'user' | 'assistant';
-  content: string;
+  role: 'user' | 'assistant';
+  content: string | ContentBlock[];
+}
+
+export interface ChatTool {
+  name: string;
+  description?: string;
+  input_schema: Record<string, unknown>;
 }
 
 export interface ChatRequest {
   model: string;
   messages: ChatMessage[];
-  max_tokens?: number;
+  max_tokens: number;
+  system?: string;
   temperature?: number;
   top_p?: number;
   stream?: boolean;
   tools?: ChatTool[];
-}
-
-export interface ChatTool {
-  type: 'function';
-  function: {
-    name: string;
-    description?: string;
-    parameters?: Record<string, unknown>;
-  };
+  tool_choice?: { type: 'auto' | 'any' | 'tool'; name?: string };
 }
 
 export interface ChatResponse {
   id: string;
+  type: 'message';
+  role: 'assistant';
+  content: ContentBlock[];
   model: string;
-  choices: Array<{
-    message: {
-      role: string;
-      content: string;
-    };
-    finish_reason: string;
-    index: number;
-  }>;
+  stop_reason: string;
   usage: {
-    prompt_tokens: number;
-    completion_tokens: number;
-    total_tokens: number;
+    input_tokens: number;
+    output_tokens: number;
   };
 }
 
-export interface ChatStreamDelta {
-  id: string;
-  choices: Array<{
-    delta: {
-      role?: string;
-      content?: string;
-    };
-    finish_reason: string | null;
-    index: number;
-  }>;
+// ---- Anthropic Streaming Events ----
+
+export interface StreamMessageStart {
+  type: 'message_start';
+  message: ChatResponse;
 }
+
+export interface StreamContentBlockStart {
+  type: 'content_block_start';
+  index: number;
+  content_block: ContentBlock;
+}
+
+export interface StreamContentBlockDelta {
+  type: 'content_block_delta';
+  index: number;
+  delta:
+    | { type: 'text_delta'; text: string }
+    | { type: 'thinking_delta'; thinking: string }
+    | { type: 'input_json_delta'; partial_json: string };
+}
+
+export interface StreamContentBlockStop {
+  type: 'content_block_stop';
+  index: number;
+}
+
+export interface StreamMessageDelta {
+  type: 'message_delta';
+  delta: { stop_reason: string };
+  usage: { output_tokens: number };
+}
+
+export interface StreamMessageStop {
+  type: 'message_stop';
+}
+
+export type StreamEvent =
+  | StreamMessageStart
+  | StreamContentBlockStart
+  | StreamContentBlockDelta
+  | StreamContentBlockStop
+  | StreamMessageDelta
+  | StreamMessageStop;
 
 // ---- Speech / TTS ----
 
@@ -102,6 +135,19 @@ export interface SubtitleInfo {
     start_time: number;
     end_time: number;
   }>;
+}
+
+// ---- Voice List ----
+
+export interface SystemVoiceInfo {
+  voice_id: string;
+  voice_name: string;
+  description: string[];
+}
+
+export interface VoiceListResponse {
+  system_voice?: SystemVoiceInfo[];
+  base_resp: BaseResp;
 }
 
 // ---- Image ----

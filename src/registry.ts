@@ -8,6 +8,7 @@ import authRefresh from './commands/auth/refresh';
 import authLogout from './commands/auth/logout';
 import textChat from './commands/text/chat';
 import speechSynthesize from './commands/speech/synthesize';
+import speechVoices from './commands/speech/voices';
 import imageGenerate from './commands/image/generate';
 import videoGenerate from './commands/video/generate';
 import videoTaskGet from './commands/video/task-get';
@@ -126,7 +127,7 @@ Usage: minimax <resource> <command> [flags]
 Resources:
   auth       Authentication (login, status, refresh, logout)
   text       Text generation (chat)
-  speech     Speech synthesis (synthesize)
+  speech     Speech synthesis (synthesize, voices)
   image      Image generation (generate)
   video      Video generation (generate, task get, download)
   music      Music generation (generate)
@@ -199,6 +200,7 @@ export const registry = new CommandRegistry({
   'auth logout':       authLogout,
   'text chat':         textChat,
   'speech synthesize': speechSynthesize,
+  'speech voices':     speechVoices,
   'image generate':    imageGenerate,
   'video generate':    videoGenerate,
   'video task get':    videoTaskGet,

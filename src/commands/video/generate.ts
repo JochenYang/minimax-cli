@@ -2,7 +2,7 @@ import { defineCommand } from '../../command';
 import { CLIError } from '../../errors/base';
 import { ExitCode } from '../../errors/codes';
 import { requestJson } from '../../client/http';
-import { videoGenerateEndpoint, videoTaskEndpoint } from '../../client/endpoints';
+import { videoGenerateEndpoint, videoTaskEndpoint, fileRetrieveEndpoint } from '../../client/endpoints';
 import { poll } from '../../polling/poll';
 import { downloadFile, formatBytes } from '../../files/download';
 import { formatOutput, detectOutputFormat } from '../../output/formatter';
@@ -13,22 +13,21 @@ import { readFileSync } from 'fs';
 
 export default defineCommand({
   name: 'video generate',
-  description: 'Create a video generation task (Hailuo-2.3 / 2.3-Fast)',
+  description: 'Generate a video (Hailuo-2.3 / 2.3-Fast)',
   usage: 'minimax video generate --prompt <text> [flags]',
   options: [
     { flag: '--model <model>', description: 'Model ID (default: MiniMax-Hailuo-2.3)' },
     { flag: '--prompt <text>', description: 'Video description' },
     { flag: '--first-frame <path-or-url>', description: 'First frame image' },
     { flag: '--callback-url <url>', description: 'Webhook URL for completion notification' },
-    { flag: '--wait', description: 'Poll until task completes' },
-    { flag: '--poll-interval <seconds>', description: 'Polling interval (default: 10)' },
-    { flag: '--download <path>', description: 'Download video on completion' },
+    { flag: '--download <path>', description: 'Save video to file on completion' },
+    { flag: '--no-wait', description: 'Return task ID immediately without waiting' },
+    { flag: '--poll-interval <seconds>', description: 'Polling interval when waiting (default: 5)' },
   ],
   examples: [
     'minimax video generate --prompt "A man reads a book. Static shot."',
-    'minimax video generate --prompt "Mouse runs toward camera." --first-frame ./mouse.jpg --model MiniMax-Hailuo-2.3-Fast',
-    'minimax video generate --prompt "Ocean waves at sunset." --wait --download sunset.mp4',
-    'TASK_ID=$(minimax video generate --prompt "A robot painting." --quiet)',
+    'minimax video generate --prompt "Ocean waves at sunset." --download sunset.mp4',
+    'minimax video generate --prompt "A robot painting." --no-wait --quiet',
   ],
   async run(config: Config, flags: GlobalFlags) {
     const prompt = flags.prompt as string | undefined;
@@ -76,20 +75,21 @@ export default defineCommand({
 
     const taskId = response.task_id;
 
-    if (!flags.wait && !flags.download) {
+    // --no-wait: return task ID immediately
+    if (flags.noWait) {
       if (config.quiet) {
         console.log(taskId);
-        return;
+      } else {
+        console.log(formatOutput({
+          task_id: taskId,
+          status: 'Submitted',
+        }, format));
       }
-      console.log(formatOutput({
-        task_id: taskId,
-        status: 'Submitted',
-      }, format));
       return;
     }
 
-    // Poll for completion
-    const pollInterval = (flags.pollInterval as number) || 10;
+    // Default: poll until completion
+    const pollInterval = (flags.pollInterval as number) || 5;
     const taskUrl = videoTaskEndpoint(config.baseUrl, taskId);
 
     const result = await poll<VideoTaskResponse>(config, {
@@ -101,36 +101,54 @@ export default defineCommand({
       getStatus: (d) => (d as VideoTaskResponse).status,
     });
 
-    if (flags.download && result.file_id) {
-      const destPath = flags.download as string;
-      const fileInfoUrl = `${config.baseUrl}/v1/files/retrieve?file_id=${result.file_id}`;
-      const fileInfo = await requestJson<FileRetrieveResponse>(config, { url: fileInfoUrl });
-      const downloadUrl = fileInfo.file?.download_url;
-
-      if (downloadUrl) {
-        const { size } = await downloadFile(downloadUrl, destPath, { quiet: config.quiet });
-        if (config.quiet) {
-          console.log(destPath);
-        } else {
-          console.log(formatOutput({
-            task_id: taskId,
-            status: 'Success',
-            file_id: result.file_id,
-            saved: destPath,
-            size: formatBytes(size),
-          }, format));
-        }
-        return;
-      }
+    if (!result.file_id) {
+      throw new CLIError(
+        'Task completed but no file_id returned.',
+        ExitCode.GENERAL,
+      );
     }
 
+    // Resolve file_id to download URL
+    const fileInfo = await requestJson<FileRetrieveResponse>(config, {
+      url: fileRetrieveEndpoint(config.baseUrl, result.file_id),
+    });
+    const downloadUrl = fileInfo.file?.download_url;
+
+    if (!downloadUrl) {
+      throw new CLIError(
+        'No download URL available for this file.',
+        ExitCode.GENERAL,
+      );
+    }
+
+    // --download: save to file
+    if (flags.download) {
+      const destPath = flags.download as string;
+      const { size } = await downloadFile(downloadUrl, destPath, { quiet: config.quiet });
+
+      if (config.quiet) {
+        console.log(destPath);
+      } else {
+        console.log(formatOutput({
+          task_id: taskId,
+          status: 'Success',
+          file_id: result.file_id,
+          saved: destPath,
+          size: formatBytes(size),
+        }, format));
+      }
+      return;
+    }
+
+    // Default: return download URL
     if (config.quiet) {
-      console.log(taskId);
+      console.log(downloadUrl);
     } else {
       console.log(formatOutput({
         task_id: taskId,
-        status: result.status,
+        status: 'Success',
         file_id: result.file_id,
+        url: downloadUrl,
         video_width: result.video_width,
         video_height: result.video_height,
       }, format));

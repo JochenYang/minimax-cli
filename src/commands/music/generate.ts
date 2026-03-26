@@ -21,13 +21,12 @@ export default defineCommand({
     { flag: '--sample-rate <hz>', description: 'Sample rate (default: 44100)' },
     { flag: '--bitrate <bps>', description: 'Bitrate (default: 256000)' },
     { flag: '--stream', description: 'Stream raw audio to stdout' },
-    { flag: '--out <path>', description: 'Output file path' },
-    { flag: '--out-format <fmt>', description: 'Output format: hex (default), url' },
+    { flag: '--out <path>', description: 'Save audio to file (uses hex decoding)' },
   ],
   examples: [
+    'minimax music generate --prompt "Upbeat pop" --lyrics "La la la..."',
     'minimax music generate --prompt "Indie folk, melancholic" --lyrics-file song.txt --out my_song.mp3',
     'minimax music generate --prompt "Upbeat pop" --lyrics "La la la..." --out summer.mp3',
-    'minimax music generate --prompt "Jazz lounge" --out-format url --output json',
   ],
   async run(config: Config, flags: GlobalFlags) {
     const prompt = flags.prompt as string | undefined;
@@ -52,7 +51,8 @@ export default defineCommand({
       process.stderr.write('Warning: No lyrics provided. Use --lyrics or --lyrics-file to include lyrics.\n');
     }
 
-    const outFormat = (flags.outFormat as string) || 'hex';
+    const outPath = flags.out as string | undefined;
+    const outFormat = outPath ? 'hex' : 'url';
     const format = detectOutputFormat(config.output);
 
     const body: MusicRequest = {
@@ -64,7 +64,7 @@ export default defineCommand({
         sample_rate: (flags.sampleRate as number) || 44100,
         bitrate: (flags.bitrate as number) || 256000,
       },
-      output_format: outFormat as 'url' | 'hex',
+      output_format: outFormat,
       stream: flags.stream === true,
     };
 
@@ -94,30 +94,7 @@ export default defineCommand({
       body,
     });
 
-    if (outFormat === 'url' && response.data.audio_url) {
-      if (config.quiet) {
-        console.log(response.data.audio_url);
-      } else {
-        console.log(formatOutput({
-          url: response.data.audio_url,
-          duration_ms: response.extra_info?.audio_length,
-          size_bytes: response.extra_info?.audio_size,
-        }, format));
-      }
-      return;
-    }
-
-    // Hex format — decode and write to file
-    const outPath = flags.out as string;
-    if (!outPath) {
-      throw new CLIError(
-        '--out is required when using hex output format.',
-        ExitCode.USAGE,
-        'minimax music generate --prompt <text> --out song.mp3',
-      );
-    }
-
-    if (response.data.audio) {
+    if (outPath && response.data.audio) {
       const audioBuffer = Buffer.from(response.data.audio, 'hex');
       writeFileSync(outPath, audioBuffer);
 
@@ -129,6 +106,16 @@ export default defineCommand({
           duration_ms: response.extra_info?.audio_length,
           size_bytes: response.extra_info?.audio_size,
           sample_rate: response.extra_info?.audio_sample_rate,
+        }, format));
+      }
+    } else if (response.data.audio_url) {
+      if (config.quiet) {
+        console.log(response.data.audio_url);
+      } else {
+        console.log(formatOutput({
+          url: response.data.audio_url,
+          duration_ms: response.extra_info?.audio_length,
+          size_bytes: response.extra_info?.audio_size,
         }, format));
       }
     }

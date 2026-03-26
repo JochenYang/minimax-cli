@@ -7,18 +7,26 @@ import { parseSSE } from '../../client/stream';
 import { formatOutput, detectOutputFormat } from '../../output/formatter';
 import type { Config } from '../../config/schema';
 import type { GlobalFlags } from '../../types/flags';
-import type { ChatMessage, ChatRequest, ChatResponse, ChatStreamDelta } from '../../types/api';
+import type {
+  ChatMessage,
+  ChatRequest,
+  ChatResponse,
+  ContentBlock,
+  StreamEvent,
+} from '../../types/api';
 import { readFileSync } from 'fs';
 
-function stripThinking(text: string): string {
-  return text.replace(/<think>[\s\S]*?<\/think>\s*/g, '').trim();
+interface ParsedMessages {
+  system?: string;
+  messages: ChatMessage[];
 }
 
-function parseMessages(flags: GlobalFlags): ChatMessage[] {
+function parseMessages(flags: GlobalFlags): ParsedMessages {
   const messages: ChatMessage[] = [];
+  let system: string | undefined;
 
   if (flags.system) {
-    messages.push({ role: 'system', content: flags.system as string });
+    system = flags.system as string;
   }
 
   if (flags.messagesFile) {
@@ -26,62 +34,77 @@ function parseMessages(flags: GlobalFlags): ChatMessage[] {
     const raw = filePath === '-'
       ? readFileSync('/dev/stdin', 'utf-8')
       : readFileSync(filePath, 'utf-8');
-    const parsed = JSON.parse(raw) as ChatMessage[];
-    messages.push(...parsed);
-  }
-
-  if (flags.message) {
-    const msgs = flags.message as string[];
-    for (const m of msgs) {
-      const colonIdx = m.indexOf(':');
-      if (colonIdx === -1) {
-        messages.push({ role: 'user', content: m });
+    const parsed = JSON.parse(raw) as Array<{ role: string; content: string | ContentBlock[] }>;
+    for (const m of parsed) {
+      if (m.role === 'system') {
+        system = typeof m.content === 'string' ? m.content : '';
       } else {
-        const role = m.slice(0, colonIdx) as ChatMessage['role'];
-        const content = m.slice(colonIdx + 1);
-        if (!['system', 'user', 'assistant'].includes(role)) {
-          throw new CLIError(
-            `Invalid message role "${role}". Valid: system, user, assistant`,
-            ExitCode.USAGE,
-          );
-        }
-        messages.push({ role, content });
+        messages.push(m as ChatMessage);
       }
     }
   }
 
-  return messages;
+  if (flags.message) {
+    const validRoles = new Set(['system', 'user', 'assistant']);
+    const msgs = flags.message as string[];
+    for (const m of msgs) {
+      const colonIdx = m.indexOf(':');
+      const maybeRole = colonIdx !== -1 ? m.slice(0, colonIdx) : '';
+
+      if (validRoles.has(maybeRole)) {
+        const content = m.slice(colonIdx + 1);
+        if (maybeRole === 'system') {
+          system = content;
+        } else {
+          messages.push({ role: maybeRole as 'user' | 'assistant', content });
+        }
+      } else {
+        // Bare string → user message
+        messages.push({ role: 'user', content: m });
+      }
+    }
+  }
+
+  return { system, messages };
+}
+
+function extractText(content: ContentBlock[]): string {
+  return content
+    .filter((b): b is Extract<ContentBlock, { type: 'text' }> => b.type === 'text')
+    .map(b => b.text)
+    .join('');
 }
 
 export default defineCommand({
   name: 'text chat',
-  description: 'Send a chat completion (M2.7 / M2.7-highspeed)',
-  usage: 'minimax text chat --message <role:content> [flags]',
+  description: 'Send a chat completion (Anthropic Messages API)',
+  usage: 'minimax text chat --message <text> [flags]',
   options: [
     { flag: '--model <model>', description: 'Model ID (default: MiniMax-M2.7)' },
-    { flag: '--message <role:content>', description: 'Message in role:content format (repeatable)' },
+    { flag: '--message <text>', description: 'Message text (repeatable, prefix role: to set role)' },
     { flag: '--messages-file <path>', description: 'JSON file with messages array (use - for stdin)' },
     { flag: '--system <text>', description: 'System prompt' },
-    { flag: '--max-tokens <n>', description: 'Maximum tokens to generate' },
-    { flag: '--temperature <n>', description: 'Sampling temperature' },
+    { flag: '--max-tokens <n>', description: 'Maximum tokens to generate (default: 4096)' },
+    { flag: '--temperature <n>', description: 'Sampling temperature (0.0, 1.0]' },
     { flag: '--top-p <n>', description: 'Nucleus sampling threshold' },
     { flag: '--stream', description: 'Stream response tokens (default: on in TTY)' },
     { flag: '--tool <json-or-path>', description: 'Tool definition as JSON or file path (repeatable)' },
   ],
   examples: [
-    'minimax text chat --message "user:What is MiniMax?"',
-    'minimax text chat --model MiniMax-M2.7-highspeed --system "You are a coding assistant." --message "user:Write fizzbuzz in Python"',
+    'minimax text chat --message "What is MiniMax?"',
+    'minimax text chat --model MiniMax-M2.7-highspeed --system "You are a coding assistant." --message "Write fizzbuzz in Python"',
+    'minimax text chat --message "Hello" --message "assistant:Hi!" --message "How are you?"',
     'cat conversation.json | minimax text chat --messages-file - --stream',
-    'minimax text chat --message "user:Hello" --output json',
+    'minimax text chat --message "Hello" --output json',
   ],
   async run(config: Config, flags: GlobalFlags) {
-    const messages = parseMessages(flags);
+    const { system, messages } = parseMessages(flags);
 
     if (messages.length === 0) {
       throw new CLIError(
         '--message or --messages-file is required.',
         ExitCode.USAGE,
-        'minimax text chat --message "user:Hello"',
+        'minimax text chat --message "Hello"',
       );
     }
 
@@ -92,10 +115,11 @@ export default defineCommand({
     const body: ChatRequest = {
       model,
       messages,
+      max_tokens: (flags.maxTokens as number) || 4096,
       stream: shouldStream,
     };
 
-    if (flags.maxTokens) body.max_tokens = flags.maxTokens as number;
+    if (system) body.system = system;
     if (flags.temperature !== undefined) body.temperature = flags.temperature as number;
     if (flags.topP !== undefined) body.top_p = flags.topP as number;
 
@@ -124,52 +148,57 @@ export default defineCommand({
         method: 'POST',
         body,
         stream: true,
+        authStyle: 'x-api-key',
       });
 
-      let fullContent = '';
+      let textContent = '';
       let inThinking = false;
+      const dim = config.noColor ? '' : '\x1b[2m';
+      const reset = config.noColor ? '' : '\x1b[0m';
+
       for await (const event of parseSSE(res)) {
         if (event.data === '[DONE]') break;
         try {
-          const delta = JSON.parse(event.data) as ChatStreamDelta;
-          const content = delta.choices?.[0]?.delta?.content;
-          if (content) {
-            fullContent += content;
-            // Buffer and strip <think>...</think> blocks from streaming output
-            if (content.includes('<think>')) inThinking = true;
-            if (!inThinking) {
-              process.stdout.write(content);
-            }
-            if (content.includes('</think>')) {
+          const parsed = JSON.parse(event.data) as StreamEvent;
+
+          if (parsed.type === 'content_block_start') {
+            if (parsed.content_block.type === 'thinking') {
+              inThinking = true;
+              process.stdout.write(`${dim}Thinking:\n`);
+            } else if (parsed.content_block.type === 'text' && inThinking) {
+              process.stdout.write(`${reset}\n\nResponse:\n`);
               inThinking = false;
-              // Emit anything after </think>
-              const afterThink = content.split('</think>').pop()?.trim();
-              if (afterThink) process.stdout.write(afterThink);
+            }
+          } else if (parsed.type === 'content_block_delta') {
+            if (parsed.delta.type === 'text_delta') {
+              textContent += parsed.delta.text;
+              process.stdout.write(parsed.delta.text);
+            } else if (parsed.delta.type === 'thinking_delta') {
+              process.stdout.write(parsed.delta.thinking);
             }
           }
         } catch {
           // Skip unparseable chunks
         }
       }
+      if (inThinking) process.stdout.write(reset);
       process.stdout.write('\n');
 
       if (format === 'json') {
-        console.log(formatOutput({ content: stripThinking(fullContent) }, format));
+        console.log(formatOutput({ content: textContent }, format));
       }
     } else {
       const response = await requestJson<ChatResponse>(config, {
         url,
         method: 'POST',
         body,
+        authStyle: 'x-api-key',
       });
 
-      if (config.quiet) {
-        console.log(stripThinking(response.choices[0]?.message?.content || ''));
-        return;
-      }
+      const text = extractText(response.content);
 
-      if (format === 'text') {
-        console.log(stripThinking(response.choices[0]?.message?.content || ''));
+      if (config.quiet || format === 'text') {
+        console.log(text);
       } else {
         console.log(formatOutput(response, format));
       }

@@ -1,9 +1,13 @@
 export function chatEndpoint(baseUrl: string): string {
-  return `${baseUrl}/v1/text/chatcompletion_v2`;
+  return `${baseUrl}/anthropic/v1/messages`;
 }
 
 export function speechEndpoint(baseUrl: string): string {
   return `${baseUrl}/v1/t2a_v2`;
+}
+
+export function voicesEndpoint(baseUrl: string): string {
+  return `${baseUrl}/v1/get_voice`;
 }
 
 export function imageEndpoint(baseUrl: string): string {

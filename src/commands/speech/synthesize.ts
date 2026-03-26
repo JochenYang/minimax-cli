@@ -12,7 +12,7 @@ import { readFileSync, writeFileSync } from 'fs';
 export default defineCommand({
   name: 'speech synthesize',
   description: 'Synchronous TTS, up to 10k chars (speech-2.8-hd / 2.6 / 02)',
-  usage: 'minimax speech synthesize --text <text> --out <path> [flags]',
+  usage: 'minimax speech synthesize --text <text> [--out <path>] [flags]',
   options: [
     { flag: '--model <model>', description: 'Model ID (default: speech-2.8-hd)' },
     { flag: '--text <text>', description: 'Text to synthesize' },
@@ -29,14 +29,13 @@ export default defineCommand({
     { flag: '--subtitles', description: 'Include subtitle timing data' },
     { flag: '--pronunciation <from/to>', description: 'Custom pronunciation (repeatable)' },
     { flag: '--sound-effect <effect>', description: 'Add sound effect' },
-    { flag: '--out <path>', description: 'Output file path' },
-    { flag: '--out-format <fmt>', description: 'Output format: hex (default), url' },
+    { flag: '--out <path>', description: 'Save audio to file (uses hex decoding)' },
     { flag: '--stream', description: 'Stream raw audio to stdout' },
   ],
   examples: [
+    'minimax speech synthesize --text "Hello, world!"',
     'minimax speech synthesize --text "Hello, world!" --out hello.mp3',
     'echo "Breaking news." | minimax speech synthesize --text-file - --out news.mp3',
-    'minimax speech synthesize --text "Link" --out-format url --output json',
     'minimax speech synthesize --text "Stream" --stream | mpv --no-terminal -',
   ],
   async run(config: Config, flags: GlobalFlags) {
@@ -59,7 +58,8 @@ export default defineCommand({
 
     const model = (flags.model as string) || 'speech-2.8-hd';
     const voice = (flags.voice as string) || 'English_expressive_narrator';
-    const outFormat = (flags.outFormat as string) || 'hex';
+    const outPath = flags.out as string | undefined;
+    const outFormat = outPath ? 'hex' : 'url';
     const format = detectOutputFormat(config.output);
 
     const body: SpeechRequest = {
@@ -77,7 +77,7 @@ export default defineCommand({
         bitrate: (flags.bitrate as number) || 128000,
         channel: (flags.channels as number) || 1,
       },
-      output_format: outFormat as 'url' | 'hex',
+      output_format: outFormat,
       stream: flags.stream === true,
     };
 
@@ -117,30 +117,8 @@ export default defineCommand({
       body,
     });
 
-    if (outFormat === 'url' && response.data.audio_url) {
-      if (config.quiet) {
-        console.log(response.data.audio_url);
-      } else {
-        console.log(formatOutput({
-          url: response.data.audio_url,
-          duration_ms: response.extra_info?.audio_length,
-          size_bytes: response.extra_info?.audio_size,
-        }, format));
-      }
-      return;
-    }
-
-    // Hex format — decode and write to file
-    const outPath = flags.out as string;
-    if (!outPath && !config.quiet) {
-      throw new CLIError(
-        '--out is required when using hex output format.',
-        ExitCode.USAGE,
-        'minimax speech synthesize --text "Hello" --out hello.mp3',
-      );
-    }
-
-    if (response.data.audio && outPath) {
+    if (outPath && response.data.audio) {
+      // --out given: decode hex and save to file
       const audioBuffer = Buffer.from(response.data.audio, 'hex');
       writeFileSync(outPath, audioBuffer);
 
@@ -152,6 +130,17 @@ export default defineCommand({
           duration_ms: response.extra_info?.audio_length,
           size_bytes: response.extra_info?.audio_size,
           sample_rate: response.extra_info?.audio_sample_rate,
+        }, format));
+      }
+    } else if (response.data.audio_url) {
+      // No --out: return URL
+      if (config.quiet) {
+        console.log(response.data.audio_url);
+      } else {
+        console.log(formatOutput({
+          url: response.data.audio_url,
+          duration_ms: response.extra_info?.audio_length,
+          size_bytes: response.extra_info?.audio_size,
         }, format));
       }
     }

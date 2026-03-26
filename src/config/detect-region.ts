@@ -27,7 +27,13 @@ export async function detectRegion(apiKey: string): Promise<Region> {
   const results = await Promise.all(
     regions.map(async (r) => ({ region: r, ok: await probeRegion(r, apiKey, 5000) })),
   );
-  const detected: Region = results.find((r) => r.ok)?.region ?? 'global';
+  const match = results.find((r) => r.ok);
+  if (!match) {
+    process.stderr.write(' failed\n');
+    process.stderr.write('Warning: API key failed validation against all regions. Falling back to global.\n');
+    return 'global';
+  }
+  const detected: Region = match.region;
   process.stderr.write(` ${detected}\n`);
   return detected;
 }
