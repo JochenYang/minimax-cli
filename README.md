@@ -1,6 +1,6 @@
 # minimax-cli
 
-Command-line interface for the [MiniMax API Platform](https://www.minimax.io) (Token Plan).
+Command-line interface for the [MiniMax Token Plan](https://platform.minimax.io/docs/token-plan/intro).
 
 ```
   __  __ ___ _   _ ___ __  __    _   __  __
