@@ -18,6 +18,8 @@ describe('video download command', () => {
       noColor: true,
       yes: false,
       dryRun: false,
+      nonInteractive: false,
+      async: false,
     };
 
     await expect(
@@ -28,6 +30,8 @@ describe('video download command', () => {
         yes: false,
         dryRun: false,
         help: false,
+        nonInteractive: false,
+        async: false,
       }),
     ).rejects.toThrow('--file-id is required');
   });
@@ -44,6 +48,8 @@ describe('video download command', () => {
       noColor: true,
       yes: false,
       dryRun: false,
+      nonInteractive: false,
+      async: false,
     };
 
     await expect(
@@ -55,6 +61,8 @@ describe('video download command', () => {
         yes: false,
         dryRun: false,
         help: false,
+        nonInteractive: false,
+        async: false,
       }),
     ).rejects.toThrow('--out is required');
   });

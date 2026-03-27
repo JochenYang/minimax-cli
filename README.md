@@ -7,10 +7,21 @@ Command-line interface for the [MiniMax Token Plan](https://platform.minimax.io/
  |  \/  |_ _| \ | |_ _|  \/  |  / \ \ \/ /
  | |\/| || ||  \| || || |\/| | / _ \ \  /
  | |  | || || |\  || || |  | |/ ___ \/  \
- |_|  |_|___|_| \_|___|_|  |_/_/   \_\/_/\
+ |_|  |_|___|_| \_|___|_|  |_/_/   \_\_/\
 ```
 
 Generate text, images, video, speech, and music from the terminal. Supports both the **Global** (`api.minimax.io`) and **CN** (`api.minimaxi.com`) platforms with automatic region detection.
+
+## What's New (v0.4.0)
+
+**File management + Vision `file_id` support:**
+
+```bash
+FILE_ID=$(minimax file upload --file image.png --quiet)
+minimax vision describe --file-id $FILE_ID --prompt "这张图里有几个人？"
+```
+
+Also new in v0.3.0: **`minimax config export-schema`** — export all commands as Anthropic/OpenAI-compatible JSON tool schemas with a single command. See [Changelog](#changelog) for full version history.
 
 ## Installation
 
@@ -20,9 +31,7 @@ Generate text, images, video, speech, and music from the terminal. Supports both
 curl -fsSL https://raw.githubusercontent.com/MiniMax-AI-Dev/minimax-cli/main/install.sh | sh
 ```
 
-Downloads a precompiled binary to `/usr/local/bin/minimax`. No runtime required.
-
-### npm (requires Node 18+)
+### npm
 
 ```bash
 npm install -g minimax-cli
@@ -37,210 +46,98 @@ bun install -g minimax-cli
 ### From source
 
 ```bash
-git clone https://github.com/MiniMax-AI-Dev/minimax-cli.git
-cd minimax-cli
+git clone https://github.com/MiniMax-AI-Dev/minimax-cli.git && cd minimax-cli
 bun install
-
-# Run directly from source
 bun run dev -- --help
-
-# Or build a standalone binary and install it
-bun run build:local
-mkdir -p ~/.local/bin
-cp dist/minimax ~/.local/bin/minimax
-minimax --help
 ```
 
 ## Quick start
 
 ```bash
-# Set your API key
 minimax auth login --api-key sk-xxxxx
-
-# The CLI auto-detects your region (global or cn) on first run
-
-# Chat
 minimax text chat --message "user:What is MiniMax?"
-
-# Generate an image
 minimax image generate --prompt "A cat in a spacesuit on Mars"
+minimax speech synthesize --text "Hello!" --out hello.mp3
+minimax vision describe --image photo.jpg
+```
 
-# Text-to-speech
-minimax speech synthesize --text "Hello, world!" --out hello.mp3
+## Agent & CI usage
 
-# Search the web
-minimax search query --q "latest AI news"
+```bash
+# Async: get task ID immediately, no blocking
+minimax video generate --prompt "A robot." --async --quiet
+# → {"taskId":"..."}
 
-# Describe an image
-minimax vision describe --image photo.jpg --prompt "What is this?"
+# Pipe-friendly: stdout is pure data, stderr is progress
+minimax text chat --message "Hi" | jq .
+
+# CI: missing args fail fast with clear errors
+minimax image generate --non-interactive
+# → Error: Missing required argument: --prompt
 ```
 
 ## Commands
 
-Run `minimax <command> --help` to see the full list of options, defaults, and usage examples for any command.
+| Command | Description |
+|---|---|
+| `text chat` | Send a chat completion |
+| `speech synthesize` | Text-to-speech, up to 10k chars |
+| `image generate` | Generate images |
+| `video generate` | Generate a video (auto-downloads on completion) |
+| `video task get` | Query video task status |
+| `video download` | Download a completed video |
+| `file upload` | Upload a file to MiniMax storage |
+| `file list` | List uploaded files |
+| `file delete` | Delete an uploaded file |
+| `music generate` | Generate a song |
+| `search query` | Web search |
+| `vision describe` | Describe an image (supports `--file-id` to skip base64) |
+| `quota show` | Show usage quotas |
+| `config export-schema` | Export tool schemas as JSON |
+| `config show` / `config set` | View or update configuration |
+| `auth login/status/refresh/logout` | Authentication |
 
-| Command | Description | Command-specific flags |
-|---|---|---|
-| `auth login` | Authenticate via OAuth or API key | `--method`, `--api-key`, `--no-browser` |
-| `auth status` | Show current authentication state | — |
-| `auth refresh` | Manually refresh OAuth token | — |
-| `auth logout` | Revoke tokens and clear stored credentials | — |
-| `text chat` | Send a chat completion | `--model`, `--message`, `--messages-file`, `--system`, `--max-tokens`, `--temperature`, `--top-p`, `--stream`, `--tool` |
-| `speech synthesize` | Synchronous TTS, up to 10k chars | `--model`, `--text`, `--text-file`, `--voice`, `--speed`, `--volume`, `--pitch`, `--format`, `--sample-rate`, `--bitrate`, `--channels`, `--language`, `--subtitles`, `--pronunciation`, `--sound-effect`, `--out`, `--out-format`, `--stream` |
-| `image generate` | Generate images | `--prompt`, `--aspect-ratio`, `--n`, `--subject-ref`, `--out-dir`, `--out-prefix` |
-| `video generate` | Create a video generation task | `--model`, `--prompt`, `--first-frame`, `--callback-url`, `--wait`, `--poll-interval`, `--download` |
-| `video task get` | Query video task status | `--task-id` |
-| `video download` | Download a completed video by file ID | `--file-id`, `--out` |
-| `music generate` | Generate a song | `--prompt`, `--lyrics`, `--lyrics-file`, `--format`, `--sample-rate`, `--bitrate`, `--stream`, `--out`, `--out-format` |
-| `search query` | Search the web via MiniMax | `--q` |
-| `vision describe` | Describe an image using MiniMax VLM | `--image`, `--prompt` |
-| `quota show` | Display Token Plan usage and remaining quotas | — |
-| `config show` | Show current configuration | — |
-| `config set` | Set a config value | `--key`, `--value` |
+All commands accept [global flags](#global-flags).
 
-All commands also accept [global flags](#global-flags) (`--api-key`, `--output`, `--quiet`, `--verbose`, etc.).
-
-### Examples
-
-#### text
+## Examples
 
 ```bash
-# Simple chat
-minimax text chat --message "user:Hello"
+# Text chat
+minimax text chat --message "user:Write fizzbuzz"
+minimax text chat --message "Hi" --stream
 
-# With system prompt and model selection
-minimax text chat --model MiniMax-M2.7-highspeed \
-  --system "You are a coding assistant." \
-  --message "user:Write fizzbuzz in Python"
+# Image generation
+minimax image generate --prompt "Sunset over ocean" --aspect-ratio 16:9 --n 3
 
-# Streaming (default in TTY)
-minimax text chat --message "user:Tell me a story" --stream
+# Vision (path/URL or pre-uploaded file ID)
+minimax vision describe --image photo.jpg --prompt "What breed is this?"
+minimax vision describe --file-id file-123 --prompt "Extract the text"
 
-# Multi-turn conversation from file
-cat conversation.json | minimax text chat --messages-file -
-```
+# Video (auto-downloads to ~/.minimax-video/ on completion)
+minimax video generate --prompt "A man reads a book."
+minimax video generate --prompt "A robot." --async --quiet
 
-#### speech
+# Speech synthesis
+minimax speech synthesize --text "Hello world!" --out hello.mp3
+minimax speech synthesize --text "Breaking news." --text-file - --stream | mpv -
 
-```bash
-# Generate speech and save to file
-minimax speech synthesize --text "Hello, world!" --out hello.mp3
+# Music generation
+minimax music generate --prompt "Indie folk" --lyrics "La la la..." --out song.mp3
 
-# Read from file or stdin
-echo "Breaking news." | minimax speech synthesize --text-file - --out news.mp3
-
-# Stream audio to a player
-minimax speech synthesize --text "Stream this" --stream | mpv --no-terminal -
-
-# Custom voice and speed
-minimax speech synthesize --text "Fast narration" --voice English_expressive_narrator --speed 1.5 --out fast.mp3
-```
-
-#### image
-
-```bash
-# Generate an image
-minimax image generate --prompt "Mountain landscape at sunset"
-
-# Custom aspect ratio and batch
-minimax image generate --prompt "Logo design" --aspect-ratio 1:1 --n 3 --out-dir ./generated/
-
-# With subject reference
-minimax image generate --prompt "Portrait in oil painting style" --subject-ref ./photo.jpg
-```
-
-#### video
-
-```bash
-# Submit a video generation task
-minimax video generate --prompt "A man reads a book. Static shot."
-
-# Wait for completion and download
-minimax video generate --prompt "Ocean waves at sunset." --wait --download sunset.mp4
-
-# With first frame image
-minimax video generate --prompt "Mouse runs toward camera." --first-frame ./mouse.jpg
-
-# Check task status
-minimax video task get --task-id 106916112212032
-
-# Download a completed video
-minimax video download --file-id 176844028768320 --out video.mp4
-```
-
-#### music
-
-```bash
-# Generate with custom lyrics
-minimax music generate --prompt "Indie folk, melancholic" --lyrics "La la la..." --out song.mp3
-
-# Lyrics from file
-minimax music generate --prompt "Upbeat pop" --lyrics-file song.txt --out summer.mp3
-
-# Auto-generated lyrics
-minimax music generate --prompt "Jazz lounge" --lyrics "Do do do..." --out jazz.mp3
-```
-
-#### search
-
-```bash
 # Web search
-minimax search query --q "MiniMax AI"
+minimax search query --q "MiniMax AI latest news"
 
-# JSON output for scripting
-minimax search query --q "latest news" --output json
-```
+# File management (for reuse in vision/video)
+FILE_ID=$(minimax file upload --file image.png --purpose vision --quiet)
+minimax vision describe --file-id $FILE_ID
 
-#### vision
+# Export Agent tool schemas
+minimax config export-schema | jq .
+minimax config export-schema --command "video generate" | jq .
 
-```bash
-# Describe a local image
-minimax vision describe --image photo.jpg
-
-# Describe from URL
-minimax vision describe --image https://example.com/photo.jpg
-
-# Custom prompt
-minimax vision describe --image screenshot.png --prompt "Extract the text from this screenshot"
-```
-
-#### quota
-
-```bash
-# Show usage and remaining quotas
-minimax quota show
-
-# JSON output
-minimax quota show --output json
-```
-
-#### config
-
-```bash
-# Show current configuration
-minimax config show
-
-# Set region
-minimax config set --key region --value cn
-
-# Set default output format
-minimax config set --key output --value json
-
-# Set request timeout
-minimax config set --key timeout --value 600
-```
-
-#### auth
-
-```bash
-# Login with API key
+# Auth
 minimax auth login --api-key sk-xxxxx
-
-# Check auth status
 minimax auth status
-
-# Logout
-minimax auth logout
 ```
 
 ## Global flags
@@ -248,49 +145,40 @@ minimax auth logout
 | Flag | Description |
 |---|---|
 | `--api-key <key>` | API key (overrides all other auth) |
-| `--region <region>` | API region: `global` (default), `cn` |
-| `--base-url <url>` | API base URL (overrides region) |
-| `--output <format>` | Output format: `text`, `json`, `yaml` |
-| `--quiet` | Suppress non-essential output |
+| `--region <region>` | `global` (default) or `cn` |
+| `--base-url <url>` | Override API base URL |
+| `--output <format>` | `text`, `json`, or `yaml` |
+| `--quiet` | Suppress non-essential output to stderr |
 | `--verbose` | Print HTTP request/response details |
 | `--timeout <seconds>` | Request timeout (default: 300) |
 | `--no-color` | Disable ANSI colors and spinners |
 | `--yes` | Skip confirmation prompts |
 | `--dry-run` | Show what would happen without executing |
+| `--non-interactive` | Disable interactive prompts (CI/agent use) |
+| `--async` | Return task ID immediately without polling |
+| `--version` / `--help` | Version and help |
 
-## Region auto-detection
+## Output philosophy
 
-On first run, the CLI probes both the Global and CN quota endpoints with your API key to determine which platform it belongs to. The detected region is cached in `~/.minimax/config.yaml` so subsequent runs are instant.
-
-You can override the region at any time:
+- `stdout` → result data only (text, file paths, JSON)
+- `stderr` → spinners, region detection, help text, warnings, verbose logs
 
 ```bash
-# Per-command
-minimax text chat --region cn --message "user:Hello"
+# stdout is clean JSON — pipe to jq safely
+minimax text chat --message "Hi" | jq .
 
-# Environment variable
-export MINIMAX_REGION=cn
-
-# Persistent
-minimax config set --key region --value cn
+# stderr shows spinner without polluting the pipe
+minimax video generate --prompt "Ocean waves." 2>/dev/null
 ```
 
 ## Configuration
 
-The CLI reads configuration from multiple sources, in order of precedence:
+Precedence (highest to lowest): CLI flags → env vars → `~/.minimax/config.yaml` → defaults.
 
-1. Command-line flags (`--api-key`, `--region`, etc.)
-2. Environment variables (`MINIMAX_API_KEY`, `MINIMAX_REGION`, `MINIMAX_BASE_URL`, `MINIMAX_OUTPUT`, `MINIMAX_TIMEOUT`)
-3. Config file (`~/.minimax/config.yaml`)
-4. Defaults
-
-## Output formats
-
-- **text** (default in TTY) -- human-readable tables and formatted text
-- **json** (default in non-TTY) -- full API response, suitable for piping to `jq`
-- **yaml** -- YAML serialization of the full response
-
-When stdout is not a TTY (e.g., piped to another program), the output automatically switches to JSON for easy parsing.
+```bash
+minimax config set --key region --value cn
+export MINIMAX_REGION=cn
+```
 
 ## Exit codes
 
@@ -307,21 +195,49 @@ When stdout is not a TTY (e.g., piped to another program), the output automatica
 ## Building
 
 ```bash
-# Run from source
-bun run dev -- <command>
-
-# Type check
-bun run typecheck
-
-# Run tests
-bun test
-
-# Build standalone binaries for all platforms
-bun run build
-
-# Build npm-publishable bundle
-bun run build:npm
+bun run dev -- <command>   # Run from source
+bun run typecheck          # Type check
+bun test                   # Run tests
+bun run build              # Build standalone binaries
 ```
+
+## Changelog
+
+### v0.4.0 — File Management API + Vision file_id Support
+
+**New `file` resource group:**
+- `minimax file upload` — upload local file, get `file_id`; `--quiet` outputs only the ID
+- `minimax file list` — formatted table of uploaded files
+- `minimax file delete` — remove file by ID
+
+**Vision `--file-id` support:**
+- `vision describe` now accepts `--file-id` as mutually exclusive alternative to `--image`
+- With `--file-id`: sends `{prompt, file_id}` directly to VLM API (no base64)
+- With `--image`: existing base64 encoding path unchanged
+- Interactive TTY prompt detects whether input is path/URL or fileId
+
+Note: MiniMax File API returned HTTP 404 with the current API key. Endpoint paths and request handling are verified correct via `--verbose` mode.
+
+### v0.3.0 — Agent Tool Schema Auto-Generation
+
+- `OptionDef` interface extended with optional `type` and `required` fields
+- New `CommandRegistry.getAllCommands()` traversal method
+- `src/utils/schema.ts`: parses `--flag <value>` strings into Anthropic/OpenAI-compatible tool schemas
+- New command: `minimax config export-schema` — exports all tool schemas as clean JSON to stdout
+- Core commands marked `required: true`: `image generate --prompt`, `text chat --message`, `video generate --prompt`, `vision describe --image`
+
+### v0.2.0 — Agent & CI Compatibility
+
+- `src/utils/env.ts`: `isInteractive()` and `isCI()` helpers
+- `--non-interactive`: forces non-interactive mode regardless of TTY state
+- `--async`: immediate task-ID return without blocking poll
+- All help routes to stderr (not stdout) — `--help | jq` works cleanly
+- Streaming: thinking blocks go to stderr in non-TTY mode; final text always to stdout
+- Interactive fallback: missing args prompt in TTY, fail fast in CI/agent mode
+
+### v0.1.0 — Initial release
+
+Text chat with streaming · Image generation with batch and subject reference · Video generation with polling and download · Music generation with lyrics · Speech synthesis with voice customization · Web search · Image understanding · OAuth and API key authentication · Automatic region detection (global vs CN) · YAML/JSON/text output formats
 
 ## License
 

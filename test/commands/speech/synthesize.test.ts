@@ -18,6 +18,8 @@ describe('speech synthesize command', () => {
       noColor: true,
       yes: false,
       dryRun: false,
+      nonInteractive: false,
+      async: false,
     };
 
     await expect(
@@ -28,6 +30,8 @@ describe('speech synthesize command', () => {
         yes: false,
         dryRun: false,
         help: false,
+        nonInteractive: false,
+        async: false,
       }),
     ).rejects.toThrow('--text or --text-file is required');
   });
@@ -44,6 +48,8 @@ describe('speech synthesize command', () => {
       noColor: true,
       yes: false,
       dryRun: true,
+      nonInteractive: false,
+      async: false,
     };
 
     const originalLog = console.log;
@@ -59,6 +65,8 @@ describe('speech synthesize command', () => {
         yes: false,
         dryRun: true,
         help: false,
+        nonInteractive: false,
+        async: false,
       });
 
       const parsed = JSON.parse(output);

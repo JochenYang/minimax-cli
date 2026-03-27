@@ -4,6 +4,8 @@ import type { GlobalFlags } from './types/flags';
 export interface OptionDef {
   flag: string;
   description: string;
+  type?: 'string' | 'number' | 'boolean' | 'array';
+  required?: boolean;
 }
 
 export interface Command {

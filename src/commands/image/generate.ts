@@ -10,13 +10,15 @@ import type { GlobalFlags } from '../../types/flags';
 import type { ImageRequest, ImageResponse } from '../../types/api';
 import { mkdirSync, existsSync, readFileSync } from 'fs';
 import { join, resolve } from 'path';
+import { isInteractive } from '../../utils/env';
+import { promptText, failIfMissing } from '../../utils/prompt';
 
 export default defineCommand({
   name: 'image generate',
   description: 'Generate images (image-01)',
   usage: 'minimax image generate --prompt <text> [flags]',
   options: [
-    { flag: '--prompt <text>', description: 'Image description' },
+    { flag: '--prompt <text>', description: 'Image description', required: true },
     { flag: '--aspect-ratio <ratio>', description: 'Aspect ratio (e.g. 16:9, 1:1)' },
     { flag: '--n <count>', description: 'Number of images to generate (default: 1)' },
     { flag: '--subject-ref <params>', description: 'Subject reference (type=character,image=path)' },
@@ -29,13 +31,21 @@ export default defineCommand({
     'minimax image generate --prompt "Mountain landscape" --quiet',
   ],
   async run(config: Config, flags: GlobalFlags) {
-    const prompt = flags.prompt as string | undefined;
+    let prompt = flags.prompt as string | undefined;
+
     if (!prompt) {
-      throw new CLIError(
-        '--prompt is required for image generation.',
-        ExitCode.USAGE,
-        'minimax image generate --prompt <text>',
-      );
+      if (isInteractive({ nonInteractive: config.nonInteractive })) {
+        const hint = await promptText({
+          message: 'Enter your image prompt:',
+        });
+        if (!hint) {
+          process.stderr.write('Image generation cancelled.\n');
+          process.exit(1);
+        }
+        prompt = hint;
+      } else {
+        failIfMissing('prompt', 'minimax image generate --prompt <text>');
+      }
     }
 
     const body: ImageRequest = {

@@ -20,11 +20,18 @@ export async function request(
   config: Config,
   opts: RequestOpts,
 ): Promise<Response> {
+  const isFormData =
+    typeof FormData !== 'undefined' && opts.body instanceof FormData;
+
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
     'User-Agent': 'minimax-cli/0.1.0',
     ...opts.headers,
   };
+
+  // Only set Content-Type for non-FormData bodies; FormData lets fetch set the multipart boundary automatically
+  if (!isFormData && !headers['Content-Type']) {
+    headers['Content-Type'] = 'application/json';
+  }
 
   if (!opts.noAuth) {
     const credential = await resolveCredential(config);
@@ -45,7 +52,11 @@ export async function request(
   const res = await fetch(opts.url, {
     method: opts.method || 'GET',
     headers,
-    body: opts.body ? JSON.stringify(opts.body) : undefined,
+    body: opts.body
+      ? isFormData
+        ? (opts.body as FormData)
+        : JSON.stringify(opts.body)
+      : undefined,
     signal: AbortSignal.timeout(timeoutMs),
   });
 

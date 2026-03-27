@@ -14,6 +14,8 @@ export function parseArgs(argv: string[]): ParsedArgs {
     yes: false,
     dryRun: false,
     help: false,
+    nonInteractive: false,
+    async: false,
   };
 
   let i = 0;
@@ -47,7 +49,8 @@ export function parseArgs(argv: string[]): ParsedArgs {
 
       // Boolean flags
       if (['quiet', 'verbose', 'noColor', 'yes', 'dryRun', 'help', 'stream',
-           'subtitles', 'wait', 'noWait', 'noBrowser'].includes(camelKey)) {
+           'subtitles', 'wait', 'noWait', 'noBrowser',
+           'nonInteractive', 'async'].includes(camelKey)) {
         (flags as Record<string, unknown>)[camelKey] = true;
         i++;
         continue;

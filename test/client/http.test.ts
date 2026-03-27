@@ -15,6 +15,8 @@ function makeConfig(baseUrl: string): Config {
     noColor: false,
     yes: false,
     dryRun: false,
+    nonInteractive: false,
+    async: false,
   };
 }
 

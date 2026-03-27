@@ -65,6 +65,8 @@ export function loadConfig(flags: GlobalFlags): Config {
     noColor: flags.noColor || process.env.NO_COLOR !== undefined || !process.stdout.isTTY,
     yes: flags.yes || false,
     dryRun: flags.dryRun || false,
+    nonInteractive: flags.nonInteractive || false,
+    async: flags.async || false,
     needsRegionDetection,
   };
 }

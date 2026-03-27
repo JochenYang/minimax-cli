@@ -18,6 +18,8 @@ describe('auth login command', () => {
       noColor: true,
       yes: false,
       dryRun: false,
+      nonInteractive: false,
+      async: false,
     };
 
     await expect(
@@ -29,6 +31,8 @@ describe('auth login command', () => {
         yes: false,
         dryRun: false,
         help: false,
+        nonInteractive: false,
+        async: false,
       }),
     ).rejects.toThrow('--api-key is required');
   });

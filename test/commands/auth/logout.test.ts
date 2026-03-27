@@ -17,6 +17,8 @@ describe('auth logout command', () => {
       noColor: true,
       yes: false,
       dryRun: true,
+      nonInteractive: false,
+      async: false,
     };
 
     const originalLog = console.log;
@@ -31,6 +33,8 @@ describe('auth logout command', () => {
         yes: false,
         dryRun: true,
         help: false,
+        nonInteractive: false,
+        async: false,
       });
 
       expect(output).toContain('No changes made');

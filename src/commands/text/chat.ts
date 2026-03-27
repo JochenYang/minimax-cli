@@ -15,6 +15,8 @@ import type {
   StreamEvent,
 } from '../../types/api';
 import { readFileSync } from 'fs';
+import { isInteractive } from '../../utils/env';
+import { promptText, failIfMissing } from '../../utils/prompt';
 
 interface ParsedMessages {
   system?: string;
@@ -81,7 +83,7 @@ export default defineCommand({
   usage: 'minimax text chat --message <text> [flags]',
   options: [
     { flag: '--model <model>', description: 'Model ID (default: MiniMax-M2.7)' },
-    { flag: '--message <text>', description: 'Message text (repeatable, prefix role: to set role)' },
+    { flag: '--message <text>', description: 'Message text (repeatable, prefix role: to set role)', required: true },
     { flag: '--messages-file <path>', description: 'JSON file with messages array (use - for stdin)' },
     { flag: '--system <text>', description: 'System prompt' },
     { flag: '--max-tokens <n>', description: 'Maximum tokens to generate (default: 4096)' },
@@ -98,14 +100,21 @@ export default defineCommand({
     'minimax text chat --message "Hello" --output json',
   ],
   async run(config: Config, flags: GlobalFlags) {
-    const { system, messages } = parseMessages(flags);
+    let { system, messages } = parseMessages(flags);
 
     if (messages.length === 0) {
-      throw new CLIError(
-        '--message or --messages-file is required.',
-        ExitCode.USAGE,
-        'minimax text chat --message "Hello"',
-      );
+      if (isInteractive({ nonInteractive: config.nonInteractive })) {
+        const hint = await promptText({
+          message: 'Enter your message:',
+        });
+        if (!hint) {
+          process.stderr.write('Chat cancelled.\n');
+          process.exit(1);
+        }
+        messages = [{ role: 'user', content: hint }];
+      } else {
+        failIfMissing('message', 'minimax text chat --message <text>');
+      }
     }
 
     const model = (flags.model as string) || 'MiniMax-M2.7';
@@ -155,6 +164,11 @@ export default defineCommand({
       let inThinking = false;
       const dim = config.noColor ? '' : '\x1b[2m';
       const reset = config.noColor ? '' : '\x1b[0m';
+      const isTTY = process.stdout.isTTY;
+      // In TTY mode, write thinking/response headers to stdout for display.
+      // In non-TTY (pipe/agent) mode, write everything but final text to stderr.
+      const statusOut = isTTY ? process.stdout : process.stderr;
+      const resultOut = process.stdout;
 
       for await (const event of parseSSE(res)) {
         if (event.data === '[DONE]') break;
@@ -164,25 +178,25 @@ export default defineCommand({
           if (parsed.type === 'content_block_start') {
             if (parsed.content_block.type === 'thinking') {
               inThinking = true;
-              process.stdout.write(`${dim}Thinking:\n`);
+              statusOut.write(`${dim}Thinking:\n`);
             } else if (parsed.content_block.type === 'text' && inThinking) {
-              process.stdout.write(`${reset}\n\nResponse:\n`);
+              statusOut.write(`${reset}\n\nResponse:\n`);
               inThinking = false;
             }
           } else if (parsed.type === 'content_block_delta') {
             if (parsed.delta.type === 'text_delta') {
               textContent += parsed.delta.text;
-              process.stdout.write(parsed.delta.text);
+              resultOut.write(parsed.delta.text);
             } else if (parsed.delta.type === 'thinking_delta') {
-              process.stdout.write(parsed.delta.thinking);
+              statusOut.write(parsed.delta.thinking);
             }
           }
         } catch {
           // Skip unparseable chunks
         }
       }
-      if (inThinking) process.stdout.write(reset);
-      process.stdout.write('\n');
+      if (inThinking) statusOut.write(reset);
+      resultOut.write('\n');
 
       if (format === 'json') {
         console.log(formatOutput({ content: textContent }, format));

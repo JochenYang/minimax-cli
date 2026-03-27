@@ -18,6 +18,8 @@ describe('quota show command', () => {
       noColor: true,
       yes: false,
       dryRun: true,
+      nonInteractive: false,
+      async: false,
     };
 
     const originalLog = console.log;
@@ -32,6 +34,8 @@ describe('quota show command', () => {
         yes: false,
         dryRun: true,
         help: false,
+        nonInteractive: false,
+        async: false,
       });
 
       expect(output).toContain('Would fetch quota');

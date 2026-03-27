@@ -17,6 +17,8 @@ describe('config set command', () => {
       noColor: true,
       yes: false,
       dryRun: false,
+      nonInteractive: false,
+      async: false,
     };
 
     await expect(
@@ -27,6 +29,8 @@ describe('config set command', () => {
         yes: false,
         dryRun: false,
         help: false,
+        nonInteractive: false,
+        async: false,
       }),
     ).rejects.toThrow('--key and --value are required');
   });
@@ -42,6 +46,8 @@ describe('config set command', () => {
       noColor: true,
       yes: false,
       dryRun: false,
+      nonInteractive: false,
+      async: false,
     };
 
     await expect(
@@ -54,6 +60,8 @@ describe('config set command', () => {
         yes: false,
         dryRun: false,
         help: false,
+        nonInteractive: false,
+        async: false,
       }),
     ).rejects.toThrow('Invalid config key');
   });

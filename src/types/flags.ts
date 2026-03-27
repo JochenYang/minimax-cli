@@ -9,5 +9,7 @@ export interface GlobalFlags {
   yes: boolean;
   dryRun: boolean;
   help: boolean;
+  nonInteractive: boolean;
+  async: boolean;
   [key: string]: unknown;
 }

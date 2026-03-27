@@ -17,6 +17,8 @@ describe('auth refresh command', () => {
       noColor: true,
       yes: false,
       dryRun: false,
+      nonInteractive: false,
+      async: false,
     };
 
     await expect(
@@ -27,6 +29,8 @@ describe('auth refresh command', () => {
         yes: false,
         dryRun: false,
         help: false,
+        nonInteractive: false,
+        async: false,
       }),
     ).rejects.toThrow('not authenticated via OAuth');
   });

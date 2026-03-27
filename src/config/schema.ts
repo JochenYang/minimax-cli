@@ -45,5 +45,7 @@ export interface Config {
   noColor: boolean;
   yes: boolean;
   dryRun: boolean;
+  nonInteractive: boolean;
+  async: boolean;
   needsRegionDetection?: boolean;
 }

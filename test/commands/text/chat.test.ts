@@ -31,6 +31,8 @@ describe('text chat command', () => {
       noColor: true,
       yes: false,
       dryRun: false,
+      nonInteractive: false,
+      async: false,
     };
 
     // Capture output
@@ -48,6 +50,8 @@ describe('text chat command', () => {
         yes: false,
         dryRun: false,
         help: false,
+        nonInteractive: false,
+        async: false,
       });
 
       expect(output).toContain('Hello! How can I help you today?');
@@ -70,6 +74,8 @@ describe('text chat command', () => {
       noColor: true,
       yes: false,
       dryRun: true,
+      nonInteractive: false,
+      async: false,
     };
 
     const originalLog = console.log;
@@ -85,6 +91,8 @@ describe('text chat command', () => {
         yes: false,
         dryRun: true,
         help: false,
+        nonInteractive: false,
+        async: false,
       });
 
       const parsed = JSON.parse(output);

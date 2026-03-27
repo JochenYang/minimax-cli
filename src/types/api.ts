@@ -250,6 +250,35 @@ export interface QuotaModelRemain {
 
 // ---- File ----
 
+export interface FileUploadResponse {
+  base_resp: BaseResp;
+  file: {
+    file_id: string;
+    bytes: number;
+    created_at: number;
+    filename: string;
+    purpose: string;
+  };
+}
+
+export interface FileListResponse {
+  base_resp: BaseResp;
+  data: Array<{
+    file_id: string;
+    bytes: number;
+    created_at: number;
+    filename: string;
+    purpose: string;
+  }>;
+}
+
+export interface FileDeleteResponse {
+  base_resp: BaseResp;
+  id: string;
+  object: string;
+  deleted: boolean;
+}
+
 export interface FileRetrieveResponse {
   base_resp: BaseResp;
   file: {

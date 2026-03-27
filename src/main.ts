@@ -19,7 +19,7 @@ async function main() {
   const { commandPath, flags } = parseArgs(args);
 
   if (flags.help || commandPath.length === 0) {
-    registry.printHelp(commandPath);
+    registry.printHelp(commandPath, process.stderr);
     process.exit(0);
   }
 

@@ -43,3 +43,15 @@ export function quotaEndpoint(baseUrl: string): string {
   const host = baseUrl.includes('minimaxi.com') ? 'https://www.minimaxi.com' : 'https://www.minimax.io';
   return `${host}/v1/api/openplatform/coding_plan/remains`;
 }
+
+export function fileUploadEndpoint(baseUrl: string): string {
+  return `${baseUrl}/v1/files`;
+}
+
+export function fileListEndpoint(baseUrl: string): string {
+  return `${baseUrl}/v1/files`;
+}
+
+export function fileDeleteEndpoint(baseUrl: string, fileId: string): string {
+  return `${baseUrl}/v1/files?file_id=${encodeURIComponent(fileId)}`;
+}

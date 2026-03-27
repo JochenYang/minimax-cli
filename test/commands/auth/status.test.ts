@@ -17,6 +17,8 @@ describe('auth status command', () => {
       noColor: true,
       yes: false,
       dryRun: false,
+      nonInteractive: false,
+      async: false,
     };
 
     const originalLog = console.log;
@@ -31,6 +33,8 @@ describe('auth status command', () => {
         yes: false,
         dryRun: false,
         help: false,
+        nonInteractive: false,
+        async: false,
       });
 
       const parsed = JSON.parse(output);

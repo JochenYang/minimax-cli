@@ -10,6 +10,8 @@ import type { Config } from '../../config/schema';
 import type { GlobalFlags } from '../../types/flags';
 import type { VideoRequest, VideoResponse, VideoTaskResponse, FileRetrieveResponse } from '../../types/api';
 import { readFileSync } from 'fs';
+import { isInteractive } from '../../utils/env';
+import { promptText, failIfMissing } from '../../utils/prompt';
 
 export default defineCommand({
   name: 'video generate',
@@ -17,26 +19,34 @@ export default defineCommand({
   usage: 'minimax video generate --prompt <text> [flags]',
   options: [
     { flag: '--model <model>', description: 'Model ID (default: MiniMax-Hailuo-2.3)' },
-    { flag: '--prompt <text>', description: 'Video description' },
+    { flag: '--prompt <text>', description: 'Video description', required: true },
     { flag: '--first-frame <path-or-url>', description: 'First frame image' },
     { flag: '--callback-url <url>', description: 'Webhook URL for completion notification' },
     { flag: '--download <path>', description: 'Save video to file on completion' },
     { flag: '--no-wait', description: 'Return task ID immediately without waiting' },
+    { flag: '--async', description: 'Return task ID immediately (agent/CI mode, same as --no-wait but explicit)' },
     { flag: '--poll-interval <seconds>', description: 'Polling interval when waiting (default: 5)' },
   ],
   examples: [
     'minimax video generate --prompt "A man reads a book. Static shot."',
     'minimax video generate --prompt "Ocean waves at sunset." --download sunset.mp4',
+    'minimax video generate --prompt "A robot painting." --async --quiet',
     'minimax video generate --prompt "A robot painting." --no-wait --quiet',
   ],
   async run(config: Config, flags: GlobalFlags) {
-    const prompt = flags.prompt as string | undefined;
+    let prompt = flags.prompt as string | undefined;
+
     if (!prompt) {
-      throw new CLIError(
-        '--prompt is required for video generation.',
-        ExitCode.USAGE,
-        'minimax video generate --prompt <text> [--model <model>]',
-      );
+      if (isInteractive({ nonInteractive: config.nonInteractive })) {
+        const hint = await promptText({ message: 'Enter your video prompt:' });
+        if (!hint) {
+          process.stderr.write('Video generation cancelled.\n');
+          process.exit(1);
+        }
+        prompt = hint;
+      } else {
+        failIfMissing('prompt', 'minimax video generate --prompt <text>');
+      }
     }
 
     const model = (flags.model as string) || 'MiniMax-Hailuo-2.3';
@@ -75,16 +85,11 @@ export default defineCommand({
 
     const taskId = response.task_id;
 
-    // --no-wait: return task ID immediately
-    if (flags.noWait) {
-      if (config.quiet) {
-        console.log(taskId);
-      } else {
-        console.log(formatOutput({
-          task_id: taskId,
-          status: 'Submitted',
-        }, format));
-      }
+    // --no-wait or --async: return task ID immediately
+    if (flags.noWait || config.async) {
+      // Always pure JSON — Agent/CI mode needs predictable stdout
+      process.stdout.write(JSON.stringify({ taskId }));
+      process.stdout.write('\n');
       return;
     }
 
@@ -140,18 +145,18 @@ export default defineCommand({
       return;
     }
 
-    // Default: return download URL
-    if (config.quiet) {
-      console.log(downloadUrl);
-    } else {
-      console.log(formatOutput({
-        task_id: taskId,
-        status: 'Success',
-        file_id: result.file_id,
-        url: downloadUrl,
-        video_width: result.video_width,
-        video_height: result.video_height,
-      }, format));
-    }
+    // Default: auto-download to temp location and output local file path
+    const os = await import('os');
+    const { join } = await import('path');
+    const destDir = join(os.tmpdir(), 'minimax-video');
+    const { existsSync, mkdirSync } = await import('fs');
+    if (!existsSync(destDir)) mkdirSync(destDir, { recursive: true });
+    const destPath = join(destDir, `${taskId}.mp4`);
+
+    const { size } = await downloadFile(downloadUrl, destPath, { quiet: config.quiet });
+
+    // Pure local path output (stdout stays clean for piping)
+    process.stdout.write(destPath);
+    process.stdout.write('\n');
   },
 });

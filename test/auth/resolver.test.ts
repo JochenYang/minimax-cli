@@ -13,6 +13,8 @@ function makeConfig(overrides: Partial<Config> = {}): Config {
     noColor: false,
     yes: false,
     dryRun: false,
+    nonInteractive: false,
+    async: false,
     ...overrides,
   };
 }

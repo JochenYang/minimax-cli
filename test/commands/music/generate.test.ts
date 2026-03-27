@@ -18,6 +18,8 @@ describe('music generate command', () => {
       noColor: true,
       yes: false,
       dryRun: false,
+      nonInteractive: false,
+      async: false,
     };
 
     await expect(
@@ -28,6 +30,8 @@ describe('music generate command', () => {
         yes: false,
         dryRun: false,
         help: false,
+        nonInteractive: false,
+        async: false,
       }),
     ).rejects.toThrow('At least one of --prompt or --lyrics is required');
   });
