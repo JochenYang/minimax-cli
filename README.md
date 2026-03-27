@@ -7,10 +7,21 @@ Command-line interface for the [MiniMax Token Plan](https://platform.minimax.io/
  |  \/  |_ _| \ | |_ _|  \/  |  / \ \ \/ /
  | |\/| || ||  \| || || |\/| | / _ \ \  /
  | |  | || || |\  || || |  | |/ ___ \/  \
- |_|  |_|___|_| \_|___|_|  |_/_/   \_\/_/\
+ |_|  |_|___|_| \_|___|_|  |_/_/   \_\_/\
 ```
 
 Generate text, images, video, speech, and music from the terminal. Supports both the **Global** (`api.minimax.io`) and **CN** (`api.minimaxi.com`) platforms with automatic region detection.
+
+## What's New (v0.2.0)
+
+This release adds first-class support for **Agent and CI environments** — the CLI now detects whether it's running interactively or in a non-interactive context and behaves accordingly:
+
+- **Environment awareness** — `--non-interactive` flag and automatic CI detection
+- **Interactive fallback** — missing required arguments prompt in TTY, fail fast in CI/Agent mode
+- **Async mode** — `--async` flag for immediate task-ID return without polling
+- **Stdout purity** — all status/progress output goes to stderr; stdout is reserved for result data only
+
+See the [Changelog](#changelog) below for full details.
 
 ## Installation
 
@@ -75,9 +86,28 @@ minimax search query --q "latest AI news"
 minimax vision describe --image photo.jpg --prompt "What is this?"
 ```
 
-## Commands
+## Agent & CI usage
 
-Run `minimax <command> --help` to see the full list of options, defaults, and usage examples for any command.
+The CLI is designed to work seamlessly in automated pipelines (GitHub Actions, OpenClaw agents, scripts, etc.):
+
+```bash
+# Agent mode: immediate task ID, no polling — stdout is pure JSON
+minimax video generate --prompt "A robot painting." --async --quiet
+# → {"taskId":"..."}
+
+# In a script: capture task ID and poll later
+TASK_ID=$(minimax video generate --prompt "A robot painting." --async --quiet | jq -r '.taskId')
+minimax video task get --task-id "$TASK_ID"
+
+# CI/non-interactive: missing args fail fast with clear error (no prompts)
+minimax image generate --non-interactive
+# → Error: Missing required argument: --prompt
+
+# Pipe-friendly: all progress/status goes to stderr, results to stdout
+minimax video generate --prompt "Ocean waves." | jq '.file_id'
+```
+
+## Commands
 
 | Command | Description | Command-specific flags |
 |---|---|---|
@@ -88,7 +118,7 @@ Run `minimax <command> --help` to see the full list of options, defaults, and us
 | `text chat` | Send a chat completion | `--model`, `--message`, `--messages-file`, `--system`, `--max-tokens`, `--temperature`, `--top-p`, `--stream`, `--tool` |
 | `speech synthesize` | Synchronous TTS, up to 10k chars | `--model`, `--text`, `--text-file`, `--voice`, `--speed`, `--volume`, `--pitch`, `--format`, `--sample-rate`, `--bitrate`, `--channels`, `--language`, `--subtitles`, `--pronunciation`, `--sound-effect`, `--out`, `--out-format`, `--stream` |
 | `image generate` | Generate images | `--prompt`, `--aspect-ratio`, `--n`, `--subject-ref`, `--out-dir`, `--out-prefix` |
-| `video generate` | Create a video generation task | `--model`, `--prompt`, `--first-frame`, `--callback-url`, `--wait`, `--poll-interval`, `--download` |
+| `video generate` | Generate a video (auto-downloads on completion) | `--model`, `--prompt`, `--first-frame`, `--callback-url`, `--download`, `--async`, `--poll-interval` |
 | `video task get` | Query video task status | `--task-id` |
 | `video download` | Download a completed video by file ID | `--file-id`, `--out` |
 | `music generate` | Generate a song | `--prompt`, `--lyrics`, `--lyrics-file`, `--format`, `--sample-rate`, `--bitrate`, `--stream`, `--out`, `--out-format` |
@@ -98,7 +128,7 @@ Run `minimax <command> --help` to see the full list of options, defaults, and us
 | `config show` | Show current configuration | — |
 | `config set` | Set a config value | `--key`, `--value` |
 
-All commands also accept [global flags](#global-flags) (`--api-key`, `--output`, `--quiet`, `--verbose`, etc.).
+All commands accept [global flags](#global-flags).
 
 ### Examples
 
@@ -113,27 +143,11 @@ minimax text chat --model MiniMax-M2.7-highspeed \
   --system "You are a coding assistant." \
   --message "user:Write fizzbuzz in Python"
 
-# Streaming (default in TTY)
+# Streaming (default in TTY; thinking block goes to stderr in CI/pipe mode)
 minimax text chat --message "user:Tell me a story" --stream
 
 # Multi-turn conversation from file
 cat conversation.json | minimax text chat --messages-file -
-```
-
-#### speech
-
-```bash
-# Generate speech and save to file
-minimax speech synthesize --text "Hello, world!" --out hello.mp3
-
-# Read from file or stdin
-echo "Breaking news." | minimax speech synthesize --text-file - --out news.mp3
-
-# Stream audio to a player
-minimax speech synthesize --text "Stream this" --stream | mpv --no-terminal -
-
-# Custom voice and speed
-minimax speech synthesize --text "Fast narration" --voice English_expressive_narrator --speed 1.5 --out fast.mp3
 ```
 
 #### image
@@ -147,19 +161,28 @@ minimax image generate --prompt "Logo design" --aspect-ratio 1:1 --n 3 --out-dir
 
 # With subject reference
 minimax image generate --prompt "Portrait in oil painting style" --subject-ref ./photo.jpg
+
+# In CI/agent: fail fast if --prompt is missing (no interactive prompt)
+minimax image generate --non-interactive
+# → Error: Missing required argument: --prompt
 ```
 
 #### video
 
 ```bash
-# Submit a video generation task
+# Human mode: auto-downloads video to ~/.minimax-video/ after polling, outputs local path
 minimax video generate --prompt "A man reads a book. Static shot."
+# → /var/folders/xx/.../minimax-video/abc123.mp4
 
-# Wait for completion and download
-minimax video generate --prompt "Ocean waves at sunset." --wait --download sunset.mp4
+# Agent/CI mode: get task ID immediately (no blocking poll)
+minimax video generate --prompt "A robot painting." --async --quiet
+# → {"taskId":"..."}
 
 # With first frame image
 minimax video generate --prompt "Mouse runs toward camera." --first-frame ./mouse.jpg
+
+# Manual download destination
+minimax video generate --prompt "Ocean waves." --download ./output.mp4
 
 # Check task status
 minimax video task get --task-id 106916112212032
@@ -179,6 +202,22 @@ minimax music generate --prompt "Upbeat pop" --lyrics-file song.txt --out summer
 
 # Auto-generated lyrics
 minimax music generate --prompt "Jazz lounge" --lyrics "Do do do..." --out jazz.mp3
+```
+
+#### speech
+
+```bash
+# Generate speech and save to file
+minimax speech synthesize --text "Hello, world!" --out hello.mp3
+
+# Read from file or stdin
+echo "Breaking news." | minimax speech synthesize --text-file - --out news.mp3
+
+# Stream audio to a player
+minimax speech synthesize --text "Stream this" --stream | mpv --no-terminal -
+
+# Custom voice and speed
+minimax speech synthesize --text "Fast narration" --voice English_expressive_narrator --speed 1.5 --out fast.mp3
 ```
 
 #### search
@@ -202,32 +241,10 @@ minimax vision describe --image https://example.com/photo.jpg
 
 # Custom prompt
 minimax vision describe --image screenshot.png --prompt "Extract the text from this screenshot"
-```
 
-#### quota
-
-```bash
-# Show usage and remaining quotas
-minimax quota show
-
-# JSON output
-minimax quota show --output json
-```
-
-#### config
-
-```bash
-# Show current configuration
-minimax config show
-
-# Set region
-minimax config set --key region --value cn
-
-# Set default output format
-minimax config set --key output --value json
-
-# Set request timeout
-minimax config set --key timeout --value 600
+# In CI/agent: fail fast if --image is missing
+minimax vision describe --non-interactive
+# → Error: Missing required argument: --image
 ```
 
 #### auth
@@ -251,12 +268,35 @@ minimax auth logout
 | `--region <region>` | API region: `global` (default), `cn` |
 | `--base-url <url>` | API base URL (overrides region) |
 | `--output <format>` | Output format: `text`, `json`, `yaml` |
-| `--quiet` | Suppress non-essential output |
+| `--quiet` | Suppress non-essential output to stderr |
 | `--verbose` | Print HTTP request/response details |
 | `--timeout <seconds>` | Request timeout (default: 300) |
 | `--no-color` | Disable ANSI colors and spinners |
 | `--yes` | Skip confirmation prompts |
 | `--dry-run` | Show what would happen without executing |
+| `--non-interactive` | Force non-interactive mode (CI/agent use) |
+| `--async` | Return task ID immediately without polling (video/music) |
+| `--version` | Print version and exit |
+| `--help` | Show help |
+
+## Output philosophy
+
+The CLI separates **progress/status** from **result data**:
+
+- `stdout` → result data only (text content, file paths, JSON responses)
+- `stderr` → spinners, region detection, help text, warnings, verbose logs
+
+This means you can pipe or redirect output safely:
+
+```bash
+# stdout is clean JSON — perfect for jq / scripts / agents
+minimax video generate --prompt "..." --async --quiet | jq -r '.taskId'
+
+# stderr shows spinner without polluting the pipe
+minimax video generate --prompt "Ocean waves." 2>/dev/null
+```
+
+In non-TTY (pipe/CI) mode, the CLI automatically switches to JSON output and routes all non-result output to stderr.
 
 ## Region auto-detection
 
@@ -283,14 +323,6 @@ The CLI reads configuration from multiple sources, in order of precedence:
 2. Environment variables (`MINIMAX_API_KEY`, `MINIMAX_REGION`, `MINIMAX_BASE_URL`, `MINIMAX_OUTPUT`, `MINIMAX_TIMEOUT`)
 3. Config file (`~/.minimax/config.yaml`)
 4. Defaults
-
-## Output formats
-
-- **text** (default in TTY) -- human-readable tables and formatted text
-- **json** (default in non-TTY) -- full API response, suitable for piping to `jq`
-- **yaml** -- YAML serialization of the full response
-
-When stdout is not a TTY (e.g., piped to another program), the output automatically switches to JSON for easy parsing.
 
 ## Exit codes
 
@@ -322,6 +354,42 @@ bun run build
 # Build npm-publishable bundle
 bun run build:npm
 ```
+
+## Changelog
+
+### v0.2.0 — Agent & CI Compatibility
+
+**Phase 1 — Infrastructure & Environment Awareness**
+- `src/utils/env.ts`: New `isInteractive()` and `isCI()` helpers for environment detection
+- `--non-interactive` flag: Forces non-interactive mode regardless of TTY state
+- `--async` flag: Immediate task-ID return without blocking poll
+
+**Phase 2 — Interactive Fallback**
+- Missing required args in TTY: Interactive prompt via `@clack/prompts`
+- Missing required args in CI/Agent: Fast fail with clear error message
+- Applies to: `image generate --prompt`, `text chat --message`, `vision describe --image`, `video generate --prompt`
+
+**Phase 3 — Async Task Handling**
+- `--async` / `--no-wait`: Always outputs pure JSON `{taskId: "..."}` to stdout
+- Default polling behavior: Unchanged (blocking poll with spinner)
+- After polling completes: Auto-downloads video to `~/.minimax-video/{taskId}.mp4`, outputs local path to stdout
+
+**Phase 4 — Stdout Purity**
+- All help output routes to stderr (not stdout) so `--help | jq` works cleanly
+- Streaming: Thinking blocks and response headers go to stderr in non-TTY mode; final text always to stdout
+- Global help text updated to document `--non-interactive` and `--async` flags
+
+### v0.1.0 — Initial release
+
+- Text chat with streaming support
+- Image generation with batch and subject reference
+- Video generation with polling and download
+- Music generation with lyrics
+- Speech synthesis with voice customization
+- Web search and image understanding
+- OAuth and API key authentication
+- Automatic region detection (global vs CN)
+- YAML/JSON/text output formats
 
 ## License
 
