@@ -12,7 +12,18 @@ Command-line interface for the [MiniMax Token Plan](https://platform.minimax.io/
 
 Generate text, images, video, speech, and music from the terminal. Supports both the **Global** (`api.minimax.io`) and **CN** (`api.minimaxi.com`) platforms with automatic region detection.
 
-## What's New (v0.2.0)
+## What's New (v0.3.0 & v0.2.0)
+
+### v0.3.0 — Agent Tool Schema Auto-Generation
+
+The CLI now **exports itself as a tool schema**, enabling zero-config Agent integration:
+
+- **`minimax config export-schema`** — export all commands as Anthropic/OpenAI-compatible JSON
+- Smart flag parsing: automatically maps `--flag <value>` to schema types
+- Required fields marked on all core generation commands
+- Run `minimax config export-schema | jq .` and paste the output into your Agent's tools list
+
+### v0.2.0 — Agent & CI Compatibility
 
 This release adds first-class support for **Agent and CI environments** — the CLI now detects whether it's running interactively or in a non-interactive context and behaves accordingly:
 
