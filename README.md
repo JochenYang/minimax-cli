@@ -127,6 +127,7 @@ minimax video generate --prompt "Ocean waves." | jq '.file_id'
 | `quota show` | Display Token Plan usage and remaining quotas | — |
 | `config show` | Show current configuration | — |
 | `config set` | Set a config value | `--key`, `--value` |
+| `config export-schema` | Export tool schemas for Agent integration | `--command` |
 
 All commands accept [global flags](#global-flags).
 
@@ -260,7 +261,17 @@ minimax auth status
 minimax auth logout
 ```
 
-## Global flags
+#### config export-schema
+
+```bash
+# Export all tool schemas as JSON (for Agent tool integration)
+minimax config export-schema | jq .
+
+# Export schema for a single command
+minimax config export-schema --command "video generate" | jq .
+
+# The output is Anthropic/OpenAI-compatible — paste directly into your Agent's tools list
+```
 
 | Flag | Description |
 |---|---|
@@ -356,6 +367,32 @@ bun run build:npm
 ```
 
 ## Changelog
+
+### v0.3.0 — Agent Tool Schema Auto-Generation
+
+**Phase 1 — OptionDef Schema Extensions**
+- `OptionDef` interface extended with optional `type` (`string | number | boolean | array`) and `required` fields
+- Zero breaking changes to existing command definitions
+
+**Phase 2 — CommandRegistry Traversal**
+- Added `getAllCommands()` method to `CommandRegistry` for schema export
+
+**Phase 3 — Schema Generation Engine**
+- New `src/utils/schema.ts`: Intelligent flag parser (`parseFlag`) that extracts parameter names and infers types from `--flag <value>` strings
+- `generateToolSchema(cmd)` produces Anthropic/OpenAI-compatible tool definitions
+
+**Phase 4 — `config export-schema` Command**
+- New command: `minimax config export-schema` — exports all tool schemas as clean JSON to stdout
+- Single-command export: `minimax config export-schema --command "video generate"`
+- Automatically skips auth/config/update commands (not suitable as Agent tools)
+- Filtered output: 11 generation commands exported by default
+
+**Phase 5 — Required Field Markers**
+- Core commands marked `required: true` on mandatory fields:
+  - `image generate --prompt`
+  - `text chat --message`
+  - `video generate --prompt`
+  - `vision describe --image`
 
 ### v0.2.0 — Agent & CI Compatibility
 
