@@ -12,16 +12,16 @@ Command-line interface for the [MiniMax Token Plan](https://platform.minimax.io/
 
 Generate text, images, video, speech, and music from the terminal. Supports both the **Global** (`api.minimax.io`) and **CN** (`api.minimaxi.com`) platforms with automatic region detection.
 
-## What's New (v0.4.0)
+## What's New (v0.3.0)
 
-**File management + Vision `file_id` support:**
+**`minimax config export-schema`** — export all commands as Anthropic/OpenAI-compatible JSON tool schemas with a single command:
 
 ```bash
-FILE_ID=$(minimax file upload --file image.png --quiet)
-minimax vision describe --file-id $FILE_ID --prompt "这张图里有几个人？"
+minimax config export-schema | jq .
+minimax config export-schema --command "video generate" | jq .
 ```
 
-Also new in v0.3.0: **`minimax config export-schema`** — export all commands as Anthropic/OpenAI-compatible JSON tool schemas with a single command. See [Changelog](#changelog) for full version history.
+See [Changelog](#changelog) for full version history.
 
 ## Installation
 
@@ -86,9 +86,6 @@ minimax image generate --non-interactive
 | `video generate` | Generate a video (auto-downloads on completion) |
 | `video task get` | Query video task status |
 | `video download` | Download a completed video |
-| `file upload` | Upload a file to MiniMax storage |
-| `file list` | List uploaded files |
-| `file delete` | Delete an uploaded file |
 | `music generate` | Generate a song |
 | `search query` | Web search |
 | `vision describe` | Describe an image (supports `--file-id` to skip base64) |
@@ -126,10 +123,6 @@ minimax music generate --prompt "Indie folk" --lyrics "La la la..." --out song.m
 
 # Web search
 minimax search query --q "MiniMax AI latest news"
-
-# File management (for reuse in vision/video)
-FILE_ID=$(minimax file upload --file image.png --purpose vision --quiet)
-minimax vision describe --file-id $FILE_ID
 
 # Export Agent tool schemas
 minimax config export-schema | jq .
@@ -203,20 +196,13 @@ bun run build              # Build standalone binaries
 
 ## Changelog
 
-### v0.4.0 — File Management API + Vision file_id Support
+### v0.4.0 — File Management API (🧊 Shelved)
 
-**New `file` resource group:**
-- `minimax file upload` — upload local file, get `file_id`; `--quiet` outputs only the ID
-- `minimax file list` — formatted table of uploaded files
-- `minimax file delete` — remove file by ID
-
-**Vision `--file-id` support:**
-- `vision describe` now accepts `--file-id` as mutually exclusive alternative to `--image`
-- With `--file-id`: sends `{prompt, file_id}` directly to VLM API (no base64)
-- With `--image`: existing base64 encoding path unchanged
-- Interactive TTY prompt detects whether input is path/URL or fileId
-
-Note: MiniMax File API returned HTTP 404 with the current API key. Endpoint paths and request handling are verified correct via `--verbose` mode.
+> **🧊 Shelved:** File API returned HTTP 404 with current API key. This feature is temporarily hidden until the endpoint permissions are officially opened.
+> - `minimax file upload` — upload local file, get `file_id`
+> - `minimax file list` — formatted table of uploaded files
+> - `minimax file delete` — remove file by ID
+> - `vision describe --file-id` — use pre-uploaded file instead of base64
 
 ### v0.3.0 — Agent Tool Schema Auto-Generation
 
