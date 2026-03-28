@@ -117,6 +117,10 @@ export default defineCommand({
       body,
     });
 
+    if (!config.quiet) {
+      process.stderr.write(`[Model: ${model}]\n`);
+    }
+
     if (outPath && response.data.audio) {
       // --out given: decode hex and save to file
       const audioBuffer = Buffer.from(response.data.audio, 'hex');

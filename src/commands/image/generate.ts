@@ -94,6 +94,10 @@ export default defineCommand({
 
     const imageUrls = response.data.image_urls || [];
 
+    if (!config.quiet) {
+      process.stderr.write('[Model: image-01]\n');
+    }
+
     // Download if --out-dir specified
     if (flags.outDir) {
       const outDir = flags.outDir as string;

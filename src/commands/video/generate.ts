@@ -85,6 +85,12 @@ export default defineCommand({
 
     const taskId = response.task_id;
 
+    if (!config.quiet && !flags.noWait && !config.async) {
+      process.stderr.write(`[Model: ${model}]\n`);
+    } else if (!config.quiet) {
+      process.stderr.write(`[Model: ${model}]\n`);
+    }
+
     // --no-wait or --async: return task ID immediately
     if (flags.noWait || config.async) {
       // Always pure JSON — Agent/CI mode needs predictable stdout

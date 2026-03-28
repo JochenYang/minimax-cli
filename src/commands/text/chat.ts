@@ -152,6 +152,9 @@ export default defineCommand({
     const url = chatEndpoint(config.baseUrl);
 
     if (shouldStream) {
+      if (!config.quiet) {
+        process.stderr.write(`[Model: ${model}]\n`);
+      }
       const res = await request(config, {
         url,
         method: 'POST',
@@ -210,6 +213,10 @@ export default defineCommand({
       });
 
       const text = extractText(response.content);
+
+      if (!config.quiet && format === 'text') {
+        process.stderr.write(`[Model: ${response.model || model}]\n`);
+      }
 
       if (config.quiet || format === 'text') {
         console.log(text);

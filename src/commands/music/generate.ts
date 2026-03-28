@@ -94,6 +94,10 @@ export default defineCommand({
       body,
     });
 
+    if (!config.quiet) {
+      process.stderr.write('[Model: music-2.5]\n');
+    }
+
     if (outPath && response.data.audio) {
       const audioBuffer = Buffer.from(response.data.audio, 'hex');
       writeFileSync(outPath, audioBuffer);

@@ -8,6 +8,7 @@ import { quotaEndpoint } from '../../client/endpoints';
 import { formatOutput } from '../../output/formatter';
 import { getConfigPath } from '../../config/paths';
 import { readConfigFile, writeConfigFile } from '../../config/loader';
+import { isInteractive } from '../../utils/env';
 import type { Config } from '../../config/schema';
 import type { GlobalFlags } from '../../types/flags';
 import type { CredentialFile } from '../../auth/types';
@@ -29,6 +30,26 @@ export default defineCommand({
     'minimax auth login --method api-key --api-key sk-xxxxx',
   ],
   async run(config: Config, flags: GlobalFlags) {
+    // --- Phase 4: env key detection ---
+    const envKey = process.env.MINIMAX_API_KEY;
+    if (envKey) {
+      const maskedEnvKey = envKey.length > 8 ? `${envKey.slice(0, 4)}...${envKey.slice(-4)}` : '***';
+      if (isInteractive({ nonInteractive: config.nonInteractive })) {
+        const { confirm } = await import('@clack/prompts');
+        const proceed = await confirm({
+          message: `Detected MINIMAX_API_KEY in environment (${maskedEnvKey}).\nYou are already authenticated via env.\nDo you still want to configure local persistent credentials?`,
+          initialValue: false,
+        });
+        if (!proceed) {
+          process.stdout.write('Login skipped. Using environment variables.\n');
+          process.exit(0);
+        }
+      } else {
+        process.stderr.write(`Warning: MINIMAX_API_KEY is already set in environment.\n`);
+      }
+    }
+    // --- Phase 4 end ---
+
     const method = flags.apiKey ? 'api-key' : (flags.method as string) || 'oauth';
 
     if (method === 'api-key') {
