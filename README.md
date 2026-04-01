@@ -1,8 +1,18 @@
 # minimax-cli
 
-CLI for the [MiniMax AI Platform](https://platform.minimax.io) — generate text, images, video, speech, and music from the terminal.
+CLI for the [MiniMax AI Platform](https://platform.minimax.io) — generate text, images, video, speech, and music from the terminal. Supports **Global** (`api.minimax.io`) and **CN** (`api.minimaxi.com`) with automatic region detection.
 
-Supports **Global** (`api.minimax.io`) and **CN** (`api.minimaxi.com`) with automatic region detection.
+---
+
+### Why minimax-cli?
+
+Zero-config Agent integration — `minimax config export-schema` dumps a standard Anthropic/OpenAI-compatible JSON Tool Schema in one shot. Cursor, Cline, Dify, and any other Agent framework that speaks tool schemas can start using all minimax commands instantly.
+
+Pipeline & CI friendly — all data flows through `stdout`, every piece of UI (spinners, status bars, progress bars) stays on `stderr`. `minimax text chat --message "hi" | jq .` Just Works™ — no stray ANSI codes, no mixed streams.
+
+Polished terminal experience — every invocation shows a branded dashboard with live quota balance and a real-color status bar exposing region, key source, and active model. Because how you look matters in the shell.
+
+---
 
 ## Install
 
