@@ -25,7 +25,7 @@ export default defineCommand({
     { flag: '--download <path>', description: 'Save video to file on completion' },
     { flag: '--no-wait', description: 'Return task ID immediately without waiting' },
     { flag: '--async', description: 'Return task ID immediately (agent/CI mode, same as --no-wait but explicit)' },
-    { flag: '--poll-interval <seconds>', description: 'Polling interval when waiting (default: 5)' },
+    { flag: '--poll-interval <seconds>', description: 'Polling interval when waiting (default: 5)', type: 'number' },
   ],
   examples: [
     'minimax video generate --prompt "A man reads a book. Static shot."',

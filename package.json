@@ -13,6 +13,7 @@
   "scripts": {
     "dev": "bun run src/main.ts",
     "build": "bun run build.ts",
+    "build:dev": "bun build src/main.ts --compile --minify --outfile dist/minimax --define \"process.env.CLI_VERSION='$(node -p \"require('./package.json').version\")'\"",
     "lint": "eslint src/ test/",
     "typecheck": "tsc --noEmit",
     "test": "bun test",

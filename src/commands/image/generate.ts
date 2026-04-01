@@ -20,7 +20,7 @@ export default defineCommand({
   options: [
     { flag: '--prompt <text>', description: 'Image description', required: true },
     { flag: '--aspect-ratio <ratio>', description: 'Aspect ratio (e.g. 16:9, 1:1)' },
-    { flag: '--n <count>', description: 'Number of images to generate (default: 1)' },
+    { flag: '--n <count>', description: 'Number of images to generate (default: 1)', type: 'number' },
     { flag: '--subject-ref <params>', description: 'Subject reference (type=character,image=path)' },
     { flag: '--out-dir <dir>', description: 'Download images to directory' },
     { flag: '--out-prefix <prefix>', description: 'Filename prefix (default: image)' },

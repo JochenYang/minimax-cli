@@ -1,5 +1,6 @@
-import { parseArgs } from './args';
+import { scanCommandPath, parseFlags } from './args';
 import { registry } from './registry';
+import { GLOBAL_OPTIONS } from './command';
 import { handleError } from './errors/handler';
 import { loadConfig } from './config/loader';
 import { detectRegion, saveDetectedRegion } from './config/detect-region';
@@ -9,26 +10,29 @@ import { checkForUpdate, getPendingUpdateNotification } from './update/checker';
 const CLI_VERSION = process.env.CLI_VERSION ?? '0.3.1';
 
 async function main() {
-  const args = process.argv.slice(2);
+  const argv = process.argv.slice(2);
 
-  if (args.includes('--version') || args.includes('-v')) {
+  if (argv.includes('--version') || argv.includes('-v')) {
     console.log(`minimax ${CLI_VERSION}`);
     process.exit(0);
   }
 
-  const { commandPath, flags } = parseArgs(args);
+  // Pass 1: find command path from positional args
+  const commandPath = scanCommandPath(argv);
 
-  if (flags.help || commandPath.length === 0) {
+  if (argv.includes('--help') || argv.includes('-h') || commandPath.length === 0) {
     registry.printHelp(commandPath, process.stderr);
     process.exit(0);
   }
 
+  // Pass 2: resolve command, then parse flags with the merged schema
   const { command, extra } = registry.resolve(commandPath);
+  const flags = parseFlags(argv, [...GLOBAL_OPTIONS, ...(command.options ?? [])]);
+
   if (extra.length > 0) (flags as Record<string, unknown>)._positional = extra;
 
   const config = loadConfig(flags);
 
-  // Auto-detect region when no explicit region is set and the API key has changed
   if (config.needsRegionDetection) {
     const apiKey = config.apiKey || config.fileApiKey || config.envApiKey;
     if (apiKey) {
@@ -40,12 +44,10 @@ async function main() {
     }
   }
 
-  // Fire-and-forget update check (non-blocking)
   const updateCheckPromise = checkForUpdate(CLI_VERSION).catch(() => {});
 
   await command.execute(config, flags);
 
-  // After command finishes, flush the update check and notify if needed
   await updateCheckPromise;
   const newVersion = getPendingUpdateNotification();
   if (newVersion && !config.quiet) {

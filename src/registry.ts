@@ -20,10 +20,6 @@ import quotaShow from './commands/quota/show';
 import configShow from './commands/config/show';
 import configSet from './commands/config/set';
 import configExportSchema from './commands/config/export-schema';
-// File API temporarily disabled (pending permission grant)
-// import fileUpload from './commands/file/upload';
-// import fileList from './commands/file/list';
-// import fileDelete from './commands/file/delete';
 import update from './commands/update';
 
 export type { Command, OptionDef } from './command';
@@ -237,14 +233,8 @@ export const registry = new CommandRegistry({
   'search query':      searchQuery,
   'vision describe':   visionDescribe,
   'quota show':       quotaShow,
-  'config show':      configShow,
-  'config set':       configSet,
+  'config show':          configShow,
+  'config set':           configSet,
   'config export-schema': configExportSchema,
-
-  // File API temporarily disabled (pending permission grant)
-  // 'file upload':      fileUpload,
-  // 'file list':        fileList,
-  // 'file delete':      fileDelete,
-
-  'update':           update,
+  'update':               update,
 });

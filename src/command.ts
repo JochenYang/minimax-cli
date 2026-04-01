@@ -36,3 +36,21 @@ export function defineCommand(spec: CommandSpec): Command {
     execute: spec.run,
   };
 }
+
+/** Global flags shared by all commands — drives the parser's type resolution. */
+export const GLOBAL_OPTIONS: OptionDef[] = [
+  { flag: '--api-key <key>',     description: 'API key' },
+  { flag: '--region <region>',   description: 'API region: global, cn' },
+  { flag: '--base-url <url>',    description: 'API base URL' },
+  { flag: '--output <format>',   description: 'Output format: text, json, yaml' },
+  { flag: '--timeout <seconds>', description: 'Request timeout', type: 'number' },
+  { flag: '--quiet',             description: 'Suppress non-essential output' },
+  { flag: '--verbose',           description: 'Print HTTP request/response details' },
+  { flag: '--no-color',          description: 'Disable ANSI colors' },
+  { flag: '--yes',               description: 'Skip confirmation prompts' },
+  { flag: '--dry-run',           description: 'Dry run mode' },
+  { flag: '--non-interactive',   description: 'Disable interactive prompts' },
+  { flag: '--async',             description: 'Return task ID immediately' },
+  { flag: '--help',              description: 'Show help' },
+  { flag: '--version',           description: 'Print version' },
+];
