@@ -121,9 +121,9 @@ export default defineCommand({
       process.stderr.write(`[Model: ${model}]\n`);
     }
 
-    if (outPath && response.data.audio) {
-      // --out given: decode hex and save to file
-      const audioBuffer = Buffer.from(response.data.audio, 'hex');
+    if (outPath) {
+      // output_format='hex': data.audio is hex-encoded binary
+      const audioBuffer = Buffer.from(response.data.audio!, 'hex');
       writeFileSync(outPath, audioBuffer);
 
       if (config.quiet) {
@@ -136,13 +136,14 @@ export default defineCommand({
           sample_rate: response.extra_info?.audio_sample_rate,
         }, format));
       }
-    } else if (response.data.audio_url) {
-      // No --out: return URL
+    } else {
+      // output_format='url': API returns URL in data.audio (not data.audio_url)
+      const audioUrl = response.data.audio_url ?? response.data.audio;
       if (config.quiet) {
-        console.log(response.data.audio_url);
+        console.log(audioUrl);
       } else {
         console.log(formatOutput({
-          url: response.data.audio_url,
+          url: audioUrl,
           duration_ms: response.extra_info?.audio_length,
           size_bytes: response.extra_info?.audio_size,
         }, format));

@@ -98,8 +98,8 @@ export default defineCommand({
       process.stderr.write('[Model: music-2.5]\n');
     }
 
-    if (outPath && response.data.audio) {
-      const audioBuffer = Buffer.from(response.data.audio, 'hex');
+    if (outPath) {
+      const audioBuffer = Buffer.from(response.data.audio!, 'hex');
       writeFileSync(outPath, audioBuffer);
 
       if (config.quiet) {
@@ -112,12 +112,13 @@ export default defineCommand({
           sample_rate: response.extra_info?.audio_sample_rate,
         }, format));
       }
-    } else if (response.data.audio_url) {
+    } else {
+      const audioUrl = response.data.audio_url ?? response.data.audio;
       if (config.quiet) {
-        console.log(response.data.audio_url);
+        console.log(audioUrl);
       } else {
         console.log(formatOutput({
-          url: response.data.audio_url,
+          url: audioUrl,
           duration_ms: response.extra_info?.audio_length,
           size_bytes: response.extra_info?.audio_size,
         }, format));
