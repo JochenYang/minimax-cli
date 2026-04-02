@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'bun:test';
-import { createMockServer, jsonResponse, sseResponse, type MockServer } from '../../helpers/mock-server';
+import { createMockServer, jsonResponse, type MockServer } from '../../helpers/mock-server';
 import textChatResponse from '../../fixtures/text-chat-response.json';
 import type { Config } from '../../../src/config/schema';
 

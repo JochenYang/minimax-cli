@@ -13,7 +13,7 @@ export default defineCommand({
     'minimax config show',
     'minimax config show --output json',
   ],
-  async run(config: Config, flags: GlobalFlags) {
+  async run(config: Config, _flags: GlobalFlags) {
     const file = loadConfigFile();
     const format = detectOutputFormat(config.output);
 

@@ -16,7 +16,7 @@ export default defineCommand({
     'minimax auth logout --dry-run',
     'minimax auth logout --yes',
   ],
-  async run(config: Config, flags: GlobalFlags) {
+  async run(config: Config, _flags: GlobalFlags) {
     const creds = await loadCredentials();
     const fileConfig = readConfigFile();
     const hasConfigKey = !!fileConfig.api_key;

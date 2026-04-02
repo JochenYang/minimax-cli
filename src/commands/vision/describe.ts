@@ -9,7 +9,7 @@ import type { GlobalFlags } from '../../types/flags';
 import { readFileSync, existsSync } from 'fs';
 import { extname } from 'path';
 import { isInteractive } from '../../utils/env';
-import { promptText, failIfMissing } from '../../utils/prompt';
+import { promptText } from '../../utils/prompt';
 
 interface VlmResponse {
   content: string;
@@ -101,7 +101,7 @@ export default defineCommand({
     }
 
     const url = vlmEndpoint(config.baseUrl);
-    let body: Record<string, unknown> = { prompt };
+    const body: Record<string, unknown> = { prompt };
 
     if (fileId) {
       // Skip base64: pass fileId directly to the API

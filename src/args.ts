@@ -76,7 +76,7 @@ export function parseFlags(argv: string[], options: OptionDef[]): GlobalFlags {
     const arg = argv[i]!;
 
     if (arg === '--help' || arg === '-h') { flags.help = true; i++; continue; }
-    if (arg === '--') { i++; break; }
+    if (arg === '--') { break; }
 
     if (arg.startsWith('--')) {
       const eqIdx = arg.indexOf('=');

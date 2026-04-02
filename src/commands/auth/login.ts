@@ -5,7 +5,7 @@ import { saveCredentials } from '../../auth/credentials';
 import { startBrowserFlow, startDeviceCodeFlow } from '../../auth/oauth';
 import { requestJson } from '../../client/http';
 import { quotaEndpoint } from '../../client/endpoints';
-import { formatOutput } from '../../output/formatter';
+
 import { getConfigPath } from '../../config/paths';
 import { readConfigFile, writeConfigFile } from '../../config/loader';
 import { isInteractive } from '../../utils/env';

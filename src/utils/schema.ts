@@ -1,4 +1,4 @@
-import type { Command, OptionDef } from '../command';
+import type { Command } from '../command';
 
 /**
  * Parse a CLI flag string (e.g. "--prompt <text>", "--stream") into

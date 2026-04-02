@@ -1,6 +1,4 @@
 import { defineCommand } from '../../command';
-import { CLIError } from '../../errors/base';
-import { ExitCode } from '../../errors/codes';
 import { requestJson } from '../../client/http';
 import { imageEndpoint } from '../../client/endpoints';
 import { downloadFile } from '../../files/download';

@@ -15,7 +15,7 @@ export default defineCommand({
   examples: [
     'minimax auth refresh',
   ],
-  async run(config: Config, flags: GlobalFlags) {
+  async run(config: Config, _flags: GlobalFlags) {
     const creds = await loadCredentials();
 
     if (!creds) {

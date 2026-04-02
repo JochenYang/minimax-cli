@@ -1,6 +1,4 @@
 import { defineCommand } from '../../command';
-import { CLIError } from '../../errors/base';
-import { ExitCode } from '../../errors/codes';
 import { request, requestJson } from '../../client/http';
 import { chatEndpoint } from '../../client/endpoints';
 import { parseSSE } from '../../client/stream';
@@ -100,7 +98,8 @@ export default defineCommand({
     'minimax text chat --message "Hello" --output json',
   ],
   async run(config: Config, flags: GlobalFlags) {
-    let { system, messages } = parseMessages(flags);
+    const { system, messages: parsedMessages } = parseMessages(flags);
+    let messages = parsedMessages;
 
     if (messages.length === 0) {
       if (isInteractive({ nonInteractive: config.nonInteractive })) {

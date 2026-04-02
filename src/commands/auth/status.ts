@@ -16,7 +16,7 @@ export default defineCommand({
     'minimax auth status',
     'minimax auth status --output json',
   ],
-  async run(config: Config, flags: GlobalFlags) {
+  async run(config: Config, _flags: GlobalFlags) {
     try {
       const credential = await resolveCredential(config);
       const format = detectOutputFormat(config.output);

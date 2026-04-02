@@ -2,7 +2,6 @@ import { defineCommand } from '../../command';
 import { requestJson } from '../../client/http';
 import { quotaEndpoint } from '../../client/endpoints';
 import { formatOutput, detectOutputFormat } from '../../output/formatter';
-import { formatTable } from '../../output/text';
 import type { Config } from '../../config/schema';
 import type { GlobalFlags } from '../../types/flags';
 
@@ -106,6 +105,7 @@ function isCJK(code: number): boolean {
 
 /** Visible column width of a plain string (ANSI-stripped, CJK = 2 cols) */
 function displayWidth(s: string): number {
+  // eslint-disable-next-line no-control-regex
   const plain = s.replace(/\x1b\[[0-9;]*m/g, '');
   let w = 0;
   for (const ch of plain) {

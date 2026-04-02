@@ -1,5 +1,5 @@
 import { join } from 'path';
-import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { readFileSync, writeFileSync } from 'fs';
 import { getConfigDir } from '../config/paths';
 
 const STATE_FILE = () => join(getConfigDir(), 'update-state.json');

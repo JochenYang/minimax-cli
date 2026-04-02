@@ -159,7 +159,7 @@ export default defineCommand({
     if (!existsSync(destDir)) mkdirSync(destDir, { recursive: true });
     const destPath = join(destDir, `${taskId}.mp4`);
 
-    const { size } = await downloadFile(downloadUrl, destPath, { quiet: config.quiet });
+    await downloadFile(downloadUrl, destPath, { quiet: config.quiet });
 
     // Pure local path output (stdout stays clean for piping)
     process.stdout.write(destPath);

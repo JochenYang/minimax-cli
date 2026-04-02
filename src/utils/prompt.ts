@@ -30,6 +30,7 @@ export async function promptText(options: {
 
   const { defaultValue, message } = options;
   const inquirer = await import('@clack/prompts');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const val = await (inquirer as any).text({
     message,
     default: defaultValue,
@@ -51,6 +52,7 @@ export async function promptConfirm(options: {
 
   const { message } = options;
   const inquirer = await import('@clack/prompts');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const val = await (inquirer as any).confirm({ message });
 
   if (typeof val === 'symbol') return undefined;

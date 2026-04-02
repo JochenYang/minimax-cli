@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
+import { describe, it, expect, afterEach } from 'bun:test';
 import { resolveCredential } from '../../src/auth/resolver';
 import type { Config } from '../../src/config/schema';
 

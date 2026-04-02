@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync } from 'fs';
 
-const VERSION = process.env.VERSION ?? 'dev';
+const pkg = JSON.parse(readFileSync('package.json', 'utf-8'));
+const VERSION = process.env.VERSION ?? pkg.version;
 const OUT = 'dist/minimax.mjs';
 
 await Bun.build({

@@ -1,6 +1,4 @@
 import { defineCommand } from '../../command';
-import { CLIError } from '../../errors/base';
-import { ExitCode } from '../../errors/codes';
 import { requestJson } from '../../client/http';
 import { fileDeleteEndpoint } from '../../client/endpoints';
 import { formatOutput, detectOutputFormat } from '../../output/formatter';

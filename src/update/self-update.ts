@@ -25,7 +25,7 @@ export interface UpdateTarget {
 
 export type Channel = 'stable' | 'latest' | string; // string = exact version tag
 
-function detectPlatform(): string {
+async function detectPlatform(): Promise<string> {
   const os = process.platform;
   const arch = process.arch;
 
@@ -42,7 +42,7 @@ function detectPlatform(): string {
   // Detect musl on Linux
   if (mappedOs === 'linux') {
     try {
-      const { execSync } = require('child_process') as typeof import('child_process');
+      const { execSync } = await import('child_process');
       const ldd = execSync('ldd /bin/ls 2>&1', { encoding: 'utf-8' });
       if (ldd.includes('musl')) return `linux-${mappedArch}-musl`;
     } catch { /* non-fatal */ }
@@ -130,7 +130,7 @@ async function downloadFile(url: string, dest: string, onProgress?: (pct: number
 }
 
 export async function resolveUpdateTarget(channel: Channel): Promise<UpdateTarget> {
-  const platform = detectPlatform();
+  const platform = await detectPlatform();
   const version = await resolveVersion(channel);
   const manifest = await fetchManifest(version);
 

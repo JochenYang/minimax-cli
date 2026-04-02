@@ -2,7 +2,6 @@ import { defineCommand } from '../../command';
 import { requestJson } from '../../client/http';
 import { searchEndpoint } from '../../client/endpoints';
 import { formatOutput, detectOutputFormat } from '../../output/formatter';
-import { formatTable } from '../../output/text';
 import { CLIError } from '../../errors/base';
 import { ExitCode } from '../../errors/codes';
 import type { Config } from '../../config/schema';
