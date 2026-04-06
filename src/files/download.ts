@@ -1,5 +1,7 @@
-import { createWriteStream } from 'fs';
+import { createWriteStream, unlinkSync } from 'fs';
 import { createProgressBar } from '../output/progress';
+import { CLIError } from '../errors/base';
+import { ExitCode } from '../errors/codes';
 
 export async function downloadFile(
   url: string,
@@ -9,12 +11,12 @@ export async function downloadFile(
   const res = await fetch(url);
 
   if (!res.ok) {
-    throw new Error(`Download failed: HTTP ${res.status}`);
+    throw new CLIError(`Download failed: HTTP ${res.status}`, ExitCode.GENERAL);
   }
 
   const contentLength = Number(res.headers.get('content-length') || 0);
   const reader = res.body?.getReader();
-  if (!reader) throw new Error('No response body');
+  if (!reader) throw new CLIError('No response body', ExitCode.GENERAL);
 
   const writer = createWriteStream(destPath);
   const progress = contentLength > 0 && !opts?.quiet
@@ -22,20 +24,40 @@ export async function downloadFile(
     : null;
 
   let received = 0;
+  let completed = false;
 
   try {
+    const writeError = new Promise<never>((_, reject) => {
+      writer.on('error', reject);
+    });
+
     while (true) {
-      const { done, value } = await reader.read();
+      const { done, value } = await Promise.race([
+        reader.read(),
+        writeError,
+      ]) as ReadableStreamReadResult<Uint8Array>;
       if (done) break;
 
-      writer.write(value);
+      const ok = writer.write(value);
+      if (!ok) await new Promise(r => writer.once('drain', r));
+
       received += value.byteLength;
       progress?.update(received);
     }
+    completed = true;
   } finally {
     reader.releaseLock();
-    writer.end();
     progress?.finish();
+
+    await new Promise<void>((resolve, reject) => {
+      writer.on('finish', resolve);
+      writer.on('error', reject);
+      writer.end();
+    });
+
+    if (!completed) {
+      try { unlinkSync(destPath); } catch { /* best effort */ }
+    }
   }
 
   return { size: received };
