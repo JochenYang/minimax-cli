@@ -100,7 +100,7 @@ export default defineCommand({
     }
 
     // Default: poll until completion
-    const pollInterval = (flags.pollInterval as number) || 5;
+    const pollInterval = (flags.pollInterval as number) ?? 5;
     const taskUrl = videoTaskEndpoint(config.baseUrl, taskId);
 
     const result = await poll<VideoTaskResponse>(config, {

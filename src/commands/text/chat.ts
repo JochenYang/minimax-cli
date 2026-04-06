@@ -123,7 +123,7 @@ export default defineCommand({
     const body: ChatRequest = {
       model,
       messages,
-      max_tokens: (flags.maxTokens as number) || 4096,
+      max_tokens: (flags.maxTokens as number) ?? 4096,
       stream: shouldStream,
     };
 

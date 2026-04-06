@@ -123,8 +123,8 @@ export default defineCommand({
       lyrics,
       audio_setting: {
         format: (flags.format as string) || 'mp3',
-        sample_rate: (flags.sampleRate as number) || 44100,
-        bitrate: (flags.bitrate as number) || 256000,
+        sample_rate: (flags.sampleRate as number) ?? 44100,
+        bitrate: (flags.bitrate as number) ?? 256000,
       },
       output_format: outFormat,
       stream: flags.stream === true,

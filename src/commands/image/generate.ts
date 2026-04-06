@@ -50,7 +50,7 @@ export default defineCommand({
       model: 'image-01',
       prompt,
       aspect_ratio: (flags.aspectRatio as string) || undefined,
-      n: (flags.n as number) || 1,
+      n: (flags.n as number) ?? 1,
     };
 
     if (flags.subjectRef) {
