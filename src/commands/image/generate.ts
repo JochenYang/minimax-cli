@@ -7,7 +7,12 @@ import type { Config } from '../../config/schema';
 import type { GlobalFlags } from '../../types/flags';
 import type { ImageRequest, ImageResponse } from '../../types/api';
 import { mkdirSync, existsSync, readFileSync } from 'fs';
-import { join, resolve } from 'path';
+import { join, resolve, extname } from 'path';
+
+const MIME_TYPES: Record<string, string> = {
+  '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
+  '.png': 'image/png', '.webp': 'image/webp',
+};
 import { isInteractive } from '../../utils/env';
 import { promptText, failIfMissing } from '../../utils/prompt';
 
@@ -69,7 +74,9 @@ export default defineCommand({
         } else {
           const imgPath = resolve(params.image);
           const imgData = readFileSync(imgPath);
-          ref.image_file = `data:image/jpeg;base64,${imgData.toString('base64')}`;
+          const ext = extname(imgPath).toLowerCase();
+          const mime = MIME_TYPES[ext] || 'image/jpeg';
+          ref.image_file = `data:${mime};base64,${imgData.toString('base64')}`;
         }
       }
 

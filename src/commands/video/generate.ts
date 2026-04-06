@@ -10,6 +10,12 @@ import type { Config } from '../../config/schema';
 import type { GlobalFlags } from '../../types/flags';
 import type { VideoRequest, VideoResponse, VideoTaskResponse, FileRetrieveResponse } from '../../types/api';
 import { readFileSync } from 'fs';
+import { extname } from 'path';
+
+const MIME_TYPES: Record<string, string> = {
+  '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
+  '.png': 'image/png', '.webp': 'image/webp',
+};
 import { isInteractive } from '../../utils/env';
 import { promptText, failIfMissing } from '../../utils/prompt';
 
@@ -63,7 +69,9 @@ export default defineCommand({
         body.first_frame_image = framePath;
       } else {
         const imgData = readFileSync(framePath);
-        body.first_frame_image = `data:image/jpeg;base64,${imgData.toString('base64')}`;
+        const ext = extname(framePath).toLowerCase();
+        const mime = MIME_TYPES[ext] || 'image/jpeg';
+        body.first_frame_image = `data:${mime};base64,${imgData.toString('base64')}`;
       }
     }
 
