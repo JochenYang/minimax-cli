@@ -29,7 +29,6 @@ export default defineCommand({
     { flag: '--language <code>',         description: 'Language boost' },
     { flag: '--subtitles',               description: 'Include subtitle timing data' },
     { flag: '--pronunciation <from/to>', description: 'Custom pronunciation (repeatable)', type: 'array' },
-    { flag: '--sound-effect <effect>',   description: 'Add sound effect' },
     { flag: '--out <path>',              description: 'Save audio to file (uses hex decoding)' },
     { flag: '--stream',                  description: 'Stream raw audio to stdout' },
   ],
