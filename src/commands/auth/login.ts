@@ -5,6 +5,7 @@ import { saveCredentials } from '../../auth/credentials';
 import { startBrowserFlow, startDeviceCodeFlow } from '../../auth/oauth';
 import { requestJson } from '../../client/http';
 import { quotaEndpoint } from '../../client/endpoints';
+import { renderQuotaTable } from '../../output/quota-table';
 
 import { getConfigPath } from '../../config/paths';
 import { readConfigFile, writeConfigFile } from '../../config/loader';
@@ -13,7 +14,21 @@ import { maskToken } from '../../utils/token';
 import type { Config } from '../../config/schema';
 import type { GlobalFlags } from '../../types/flags';
 import type { CredentialFile } from '../../auth/types';
-import type { QuotaResponse } from '../../types/api';
+import type { QuotaResponse, QuotaModelRemain } from '../../types/api';
+
+interface QuotaApiResponse {
+  model_remains: QuotaModelRemain[];
+}
+
+async function showQuotaAfterLogin(config: Config): Promise<void> {
+  try {
+    const url = quotaEndpoint(config.baseUrl);
+    const response = await requestJson<QuotaApiResponse>(config, { url });
+    renderQuotaTable(response.model_remains || [], config);
+  } catch {
+    // Non-fatal — login succeeded, quota display is best-effort
+  }
+}
 
 export default defineCommand({
   name: 'auth login',
@@ -83,6 +98,8 @@ export default defineCommand({
         existing.api_key = key;
         await writeConfigFile(existing);
         process.stderr.write(`API key saved to ${getConfigPath()}\n`);
+
+        await showQuotaAfterLogin({ ...config, apiKey: key });
       } else {
         console.log('Would validate and save API key.');
       }
@@ -112,5 +129,7 @@ export default defineCommand({
     await saveCredentials(creds);
     process.stderr.write('Logged in successfully.\n');
     process.stderr.write('Credentials saved to ~/.mmx/credentials.json\n');
+
+    await showQuotaAfterLogin({ ...config, apiKey: creds.access_token });
   },
 });
