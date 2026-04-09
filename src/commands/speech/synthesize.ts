@@ -3,6 +3,7 @@ import { CLIError } from '../../errors/base';
 import { ExitCode } from '../../errors/codes';
 import { request, requestJson } from '../../client/http';
 import { speechEndpoint } from '../../client/endpoints';
+import { parseSSE } from '../../client/stream';
 import { detectOutputFormat, formatOutput } from '../../output/formatter';
 import { saveAudioOutput } from '../../output/audio';
 import { readTextFromPathOrStdin } from '../../utils/fs';
@@ -98,14 +99,14 @@ export default defineCommand({
 
     if (flags.stream) {
       const res = await request(config, { url, method: 'POST', body, stream: true });
-      const reader = res.body?.getReader();
-      if (!reader) throw new CLIError('No response body', ExitCode.GENERAL);
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        process.stdout.write(value);
+      for await (const event of parseSSE(res)) {
+        if (!event.data || event.data === '[DONE]') break;
+        const parsed = JSON.parse(event.data);
+        const audioHex = parsed?.data?.audio;
+        if (audioHex) {
+          process.stdout.write(Buffer.from(audioHex, 'hex'));
+        }
       }
-      reader.releaseLock();
       return;
     }
 

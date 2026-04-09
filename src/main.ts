@@ -17,6 +17,12 @@ process.on('SIGINT', () => {
   process.exit(130);
 });
 
+// Handle stdout EPIPE gracefully (e.g., piped to `mpv` that exits early)
+process.stdout.on('error', (e) => {
+  if (e.code === 'EPIPE') process.exit(0);
+  else throw e;
+});
+
 // Commands that manage their own auth or need no key
 const NO_AUTH_SETUP = [
   ['auth', 'login'],
