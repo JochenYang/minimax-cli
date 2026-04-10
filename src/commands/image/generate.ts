@@ -21,7 +21,7 @@ import { promptText, failIfMissing } from '../../utils/prompt';
 export default defineCommand({
   name: 'image generate',
   description: 'Generate images (image-01 / image-01-live)',
-  apiDocs: 'https://platform.minimax.io/docs/api-reference/image-generation-t2i',
+  apiDocs: '/docs/api-reference/image-generation-t2i',
   usage: 'mmx image generate --prompt <text> [flags]',
   options: [
     { flag: '--prompt <text>', description: 'Image description', required: true },
@@ -91,7 +91,7 @@ export default defineCommand({
     const body: ImageRequest = {
       model: 'image-01',
       prompt,
-      aspect_ratio: (flags.aspectRatio as string) || undefined,
+      aspect_ratio: (width !== undefined && height !== undefined) ? undefined : ((flags.aspectRatio as string) || undefined),
       n: (flags.n as number) ?? 1,
       seed: flags.seed as number | undefined,
       width: width,
