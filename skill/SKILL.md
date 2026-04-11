@@ -403,3 +403,26 @@ mmx config show
 export MINIMAX_API_KEY=sk-xxxxx
 export MINIMAX_REGION=cn
 ```
+
+### Default Model Configuration
+
+Set per-modality defaults so you don't need `--model` every time:
+
+```bash
+# Set defaults
+mmx config set --key default-text-model --value MiniMax-M2.7-highspeed
+mmx config set --key default-speech-model --value speech-2.8-hd
+mmx config set --key default-video-model --value MiniMax-Hailuo-2.3
+mmx config set --key default-music-model --value music-2.6
+
+# Use without --model
+mmx text chat --message "Hello"
+mmx speech synthesize --text "Hello" --out hello.mp3
+mmx video generate --prompt "Ocean waves"
+mmx music generate --prompt "Upbeat pop" --instrumental
+
+# --model still overrides per-call
+mmx text chat --model MiniMax-M2.7 --message "Hello"
+```
+
+**Resolution priority**: `--model` flag > config default > hardcoded fallback.
