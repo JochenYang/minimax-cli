@@ -143,6 +143,7 @@ mmx auth logout
 mmx quota
 mmx config show
 mmx config set --key region --value cn
+mmx config set --key default-text-model --value MiniMax-M2.7-highspeed
 mmx config export-schema | jq .
 ```
 
