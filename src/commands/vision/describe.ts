@@ -22,6 +22,8 @@ const MIME_TYPES: Record<string, string> = {
   '.webp': 'image/webp',
 };
 
+const MAX_IMAGE_SIZE_BYTES = 50 * 1024 * 1024; // 50 MB limit
+
 async function toDataUri(image: string): Promise<string> {
   if (image.startsWith('data:')) return image;
 
@@ -31,6 +33,12 @@ async function toDataUri(image: string): Promise<string> {
     const contentType = res.headers.get('content-type') || 'image/jpeg';
     const mime = contentType.split(';')[0]!.trim();
     const buf = await res.arrayBuffer();
+    if (buf.byteLength > MAX_IMAGE_SIZE_BYTES) {
+      throw new CLIError(
+        `Image too large (${(buf.byteLength / 1024 / 1024).toFixed(1)} MB). Maximum is 50 MB.`,
+        ExitCode.USAGE,
+      );
+    }
     const b64 = Buffer.from(buf).toString('base64');
     return `data:${mime};base64,${b64}`;
   }
