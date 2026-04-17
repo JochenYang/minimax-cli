@@ -124,7 +124,8 @@ describe('refreshAccessToken: timeout and error handling', () => {
     // We test the real function against a mock server via a wrapper
     // that overrides the fetch to hit our local server instead.
     const origFetch = globalThis.fetch;
-    globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (globalThis as any).fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = typeof input === 'string' ? input : input.toString();
       if (url.includes('oauth/token')) {
         return origFetch(`${server.url}/v1/oauth/token`, init);
@@ -156,7 +157,8 @@ describe('refreshAccessToken: timeout and error handling', () => {
 
     const mod = await import('../../src/auth/refresh');
     const origFetch = globalThis.fetch;
-    globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (globalThis as any).fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = typeof input === 'string' ? input : input.toString();
       if (url.includes('oauth/token')) {
         return origFetch(`${server.url}/v1/oauth/token`, init);
